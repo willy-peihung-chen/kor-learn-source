@@ -3,20 +3,21 @@
 iPhone 的原生 App 必須用 Mac 打包，所以這個專案用「網頁版＋加入主畫面」：
 網頁放到 GitHub Pages（免費），iPhone 用 Safari 打開後加入主畫面，就會有「韓文學習」的圖示，點開是全螢幕。
 
-## 第一次設定
+## 上傳網頁版（每次更新都一樣）
 
-1. 在電腦打包網頁版（在 `C:\game\kor_learn` 執行）：
+在 `C:\game\kor_learn` 執行：
 
-   ```
-   flutter build web --release --base-href /kor-learn/ *> build_web_log.txt
-   ```
+```
+powershell -ExecutionPolicy Bypass -File tool\deploy_web.ps1
+```
 
-   `/kor-learn/` 要和下一步的 GitHub 倉庫名稱一樣（前後都要有斜線）。打包好的檔案在 `build\web`。
+腳本會：打包網頁版（`--base-href /kor-learn/`）→ 確認圖示字型等檔案都在 → 用 git 把 `build\web` 整包推到 GitHub 倉庫 `willy-peihung-chen/kor-learn`。
+第一次執行會跳出瀏覽器要你登入 GitHub。
 
-2. 到 GitHub 建一個新的 **Public** 倉庫，名稱 `kor-learn`。
-3. 在倉庫頁面按 **Add file → Upload files**，把 `build\web` **裡面的所有檔案和資料夾**拖進去（不是拖 `web` 資料夾本身），再按 **Commit changes**。
-4. 倉庫的 **Settings → Pages**：Source 選 **Deploy from a branch**，Branch 選 `main`、資料夾選 `/ (root)`，按 Save。
-5. 等一兩分鐘，網址會是 `https://你的帳號.github.io/kor-learn/`。
+不要再用網頁「Upload files」拖曳上傳：拖曳時子資料夾（`assets`、`canvaskit`、`icons`）可能沒有上傳，App 會缺圖示字型，圖示全部變成方框（11/18 發生過）。
+
+倉庫的 **Settings → Pages** 只要設定一次：Deploy from a branch、`main`、`/ (root)`。
+推送後到倉庫的 **Actions** 等「pages build and deployment」出現綠色勾勾（約一兩分鐘），網址是 https://willy-peihung-chen.github.io/kor-learn/ 。
 
 ## iPhone
 
@@ -33,6 +34,6 @@ iPhone 的原生 App 必須用 Mac 打包，所以這個專案用「網頁版＋
 
 ## 之後更新內容
 
-1. 重新執行第一步的打包指令。
-2. 到 GitHub 倉庫按 **Add file → Upload files**，再把 `build\web` 裡的全部檔案拖進去、Commit（同名檔案會被覆蓋）。
+1. 執行上面的 `deploy_web.ps1`。
+2. 等 Actions 綠色勾勾。
 3. iPhone 上把 App 完全關掉（從多工畫面往上滑掉）再打開。如果還是舊版，等幾分鐘再試。

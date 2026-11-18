@@ -294,3 +294,11 @@
 - `.gitignore` 加上本機記錄檔（`*_log.txt`）與截圖（`flutter_*.png`），不上傳。
 - README 更新：線上版網址、目前內容（單元 1～31）、`tool/` 與 `docs/` 的說明。
 - 之後的固定做法：每完成一批修改、你的電腦上 analyze／test 通過後，就 commit 一次並 push。
+
+### 11/18 晚上：iPhone 實機測試；改用腳本上傳網頁版
+
+- iPhone 實機：網址打開正常、中文正常，但**所有圖示變成方框**。
+- 原因：在 GitHub 網頁拖曳上傳時，`assets` 等子資料夾沒有上傳（倉庫裡沒有 `assets`），缺少圖示字型 `MaterialIcons-Regular.otf`。畫面還能顯示，是因為 CanvasKit 會改從 Google 的 CDN 載入。
+- 另外：一開始 Pages 沒有啟動部署（Actions 沒有任何紀錄），把 Branch 改成 None 再改回 main 後才開始部署。
+- 修正：新增 `tool/deploy_web.ps1`，打包後檢查圖示字型存在，再用 git 把 `build\web` 整包強制推到 `kor-learn`，不再手動拖曳。`docs/deploy_iphone.md` 改成這個做法。
+- 還沒確認：重新上傳後的圖示、iPhone 朗讀是否有聲音。
