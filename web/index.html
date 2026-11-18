@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <!--
+    網站放在子路徑時，用 flutter build web --base-href /路徑/ 取代下面的值。
+    放在網站根目錄（例如 Netlify）就維持預設的 "/"。
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="給零基礎繁體中文使用者的韓文自學工具。">
+  <meta name="theme-color" content="#2F4858">
+
+  <!-- iPhone：從主畫面打開時全螢幕顯示，並使用這個名稱與圖示 -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="韓文學習">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>韓文學習</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body { margin: 0; background: #F6F6F3; }
+  </style>
+</head>
+<body>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

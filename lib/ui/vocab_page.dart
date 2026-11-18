@@ -1,0 +1,274 @@
+import 'package:flutter/material.dart';
+
+import '../data/catalog.dart';
+import '../data/content_models.dart';
+import '../state/app_state.dart';
+import 'app_scope.dart';
+import 'review_page.dart';
+import 'speak_button.dart';
+import 'theme.dart';
+import 'widgets.dart';
+
+/// 「單字」頁籤：所有單字都依主題放在一起；從主題進去瀏覽、聽發音、開始複習。
+class VocabHomePage extends StatelessWidget {
+  const VocabHomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final state = AppScope.of(context);
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+
+    final due = state.dueCount;
+    final fresh = state.newWordCount;
+    final reviewDetail = (due == 0 && fresh == 0)
+        ? '目前沒有需要複習的單字。'
+        : <String>[
+            if (due > 0) '$due 張到期',
+            if (fresh > 0) '新單字 $fresh 個（每輪最多 ${AppState.newWordsPerRound} 個）',
+          ].join('、');
+
+    return PageBody(
+      children: <Widget>[
+        Text('單字', style: theme.textTheme.headlineSmall),
+        const SizedBox(height: 4),
+        Text(
+          '已學 ${state.learnedWordCount} / ${Catalog.words.length} 個・'
+          '${Catalog.topics.length} 個主題',
+          style: theme.textTheme.bodyMedium?.copyWith(color: muted),
+        ),
+        const SizedBox(height: 16),
+        SectionCard(
+          child: Row(
+            children: <Widget>[
+              Icon(Icons.style_outlined, color: theme.colorScheme.primary),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text('單字複習', style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 2),
+                    Text(
+                      reviewDetail,
+                      style: theme.textTheme.bodyMedium?.copyWith(color: muted),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: () => openReview(context),
+                child: const Text('開始複習'),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        Text('主題', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 4),
+        Text(
+          '點進主題可以瀏覽單字、聽發音；也可以只複習那一個主題。',
+          style: theme.textTheme.bodySmall?.copyWith(color: muted),
+        ),
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            const gap = 12.0;
+            final twoColumns = constraints.maxWidth >= 560;
+            final width = twoColumns
+                ? (constraints.maxWidth - gap) / 2
+                : constraints.maxWidth;
+            return Wrap(
+              spacing: gap,
+              runSpacing: gap,
+              children: <Widget>[
+                for (final topic in Catalog.topics)
+                  SizedBox(width: width, child: _TopicCard(topic: topic)),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _TopicCard extends StatelessWidget {
+  const _TopicCard({required this.topic});
+
+  final WordTopic topic;
+
+  @override
+  Widget build(BuildContext context) {
+    final state = AppScope.of(context);
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    final progress = state.topicProgress(topic.id);
+    final due = state.dueCountOf(topic.id);
+
+    return SectionCard(
+      padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => TopicWordsPage(topic: topic)),
+      ),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(topic.title, style: theme.textTheme.titleMedium),
+                const SizedBox(height: 2),
+                Text(
+                  '${topic.words.length} 個・已學 ${progress.learned}'
+                  '${due > 0 ? '・到期 $due' : ''}',
+                  style: theme.textTheme.bodySmall?.copyWith(color: muted),
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: topic.words.isEmpty
+                        ? 0
+                        : progress.learned / topic.words.length,
+                    minHeight: 4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 4),
+          Icon(Icons.chevron_right, color: muted),
+        ],
+      ),
+    );
+  }
+}
+
+/// 一個主題底下的單字清單：點單字那一列會念出單字，底下是字母分解。
+class TopicWordsPage extends StatelessWidget {
+  const TopicWordsPage({super.key, required this.topic});
+
+  final WordTopic topic;
+
+  @override
+  Widget build(BuildContext context) {
+    final state = AppScope.of(context);
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+
+    return Scaffold(
+      appBar: AppBar(title: Text(topic.title)),
+      body: SafeArea(
+        child: PageBody(
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    '${topic.words.length} 個單字・點單字會念出來',
+                    style: theme.textTheme.bodyMedium?.copyWith(color: muted),
+                  ),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: () => openReview(context, topic: topic),
+                  icon: const Icon(Icons.style_outlined, size: 18),
+                  label: const Text('複習這個主題'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '字母分解中，淡色的 ㅇ 在音節開頭不發音。'
+              '漢字詞可以用中文聯想，但意思不一定完全相同。',
+              style: theme.textTheme.bodySmall?.copyWith(color: muted),
+            ),
+            const SizedBox(height: 12),
+            for (final word in topic.words)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: SectionCard(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+                  onTap: () => speakText(context, word.hangul),
+                  child: _WordRow(word: word, learned: !state.isNewWord(word.id)),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WordRow extends StatelessWidget {
+  const _WordRow({required this.word, required this.learned});
+
+  final WordItem word;
+  final bool learned;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 10,
+                children: <Widget>[
+                  Text(
+                    word.hangul,
+                    style: hangulStyle(22, weight: FontWeight.w600),
+                  ),
+                  Text(word.meaning, style: theme.textTheme.bodyLarge),
+                  if (word.hanja != null)
+                    Text(
+                      '漢字：${word.hanja}',
+                      style: theme.textTheme.bodySmall?.copyWith(color: muted),
+                    ),
+                ],
+              ),
+            ),
+            if (learned)
+              Icon(
+                Icons.check_circle_outline,
+                size: 18,
+                color: theme.colorScheme.primary,
+              ),
+            SpeakButton(text: word.hangul, tooltip: '朗讀單字', iconSize: 22),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(word.example, style: hangulStyle(15)),
+                  Text(
+                    word.exampleMeaning,
+                    style: theme.textTheme.bodySmall?.copyWith(color: muted),
+                  ),
+                  if (word.note != null) ...<Widget>[
+                    const SizedBox(height: 4),
+                    Text(
+                      '用法：${word.note}',
+                      style: theme.textTheme.bodySmall?.copyWith(height: 1.4),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            SpeakButton(text: word.example, tooltip: '朗讀例句', iconSize: 20),
+          ],
+        ),
+      ],
+    );
+  }
+}

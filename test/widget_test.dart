@@ -1,0 +1,319 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:hangul_app/app.dart';
+import 'package:hangul_app/audio/speech_service.dart';
+import 'package:hangul_app/data/catalog.dart';
+import 'package:hangul_app/data/lessons.dart';
+import 'package:hangul_app/state/app_state.dart';
+import 'package:hangul_app/storage/progress_repository.dart';
+import 'package:hangul_app/ui/about_page.dart';
+import 'package:hangul_app/ui/app_shell.dart';
+import 'package:hangul_app/ui/lesson_page.dart';
+
+const List<Size> _sizes = <Size>[
+  Size(360, 740), // 手機
+  Size(820, 1180), // 平板直向
+  Size(1280, 800), // 電腦
+];
+
+/// 記下被要求朗讀的文字，不會真的發聲。
+class FakeSpeechService implements SpeechService {
+  FakeSpeechService({this.available = true});
+
+  final bool available;
+  final List<String> spoken = <String>[];
+
+  @override
+  Future<bool> speak(String text) async {
+    spoken.add(text);
+    return available;
+  }
+
+  @override
+  Future<void> stop() async {}
+}
+
+Future<AppState> _pumpApp(
+  WidgetTester tester,
+  Size size, {
+  SpeechService? speech,
+}) async {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
+
+  final state = AppState(
+    repository: MemoryProgressRepository(),
+    clock: () => DateTime(2026, 10, 29, 12),
+  );
+  await tester.pumpWidget(
+    HangulApp(
+      state: state,
+      speech: speech ?? const NoopSpeechService(),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return state;
+}
+
+Future<void> _openTab(WidgetTester tester, Size size, String label) async {
+  final navigation = size.width >= 860
+      ? find.byType(NavigationRail)
+      : find.byType(NavigationBar);
+  await tester.tap(
+    find.descendant(of: navigation, matching: find.text(label)),
+  );
+  await tester.pumpAndSettle();
+}
+
+/// 進入「單字」頁籤，按下「開始複習」，進到單字複習畫面。
+Future<void> _openReview(WidgetTester tester, Size size) async {
+  await _openTab(tester, size, '單字');
+  await tester.tap(find.text('開始複習'));
+  await tester.pumpAndSettle();
+}
+
+void main() {
+  for (final size in _sizes) {
+    final name = '${size.width.toInt()}x${size.height.toInt()}';
+
+    testWidgets('首頁在 $name 可正常顯示，沒有版面例外', (tester) async {
+      await _pumpApp(tester, size);
+      expect(find.text('今日學習'), findsOneWidget);
+      expect(find.text('開始學習'), findsOneWidget);
+      expect(find.text('今日課程'), findsOneWidget);
+      expect(find.text('舊知識複習'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('三個主要頁面在 $name 都能開啟，沒有版面例外', (tester) async {
+      await _pumpApp(tester, size);
+
+      await _openTab(tester, size, '課程');
+      expect(find.text(Lessons.all.first.title), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await _openTab(tester, size, '單字');
+      expect(find.text(Catalog.topics.first.title), findsOneWidget);
+      expect(find.text('開始複習'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await _openTab(tester, size, '首頁');
+      expect(find.text('今日學習'), findsOneWidget);
+    });
+  }
+
+  testWidgets('完成第一課：學習紀錄寫入狀態，首頁數字隨之更新', (tester) async {
+    const size = Size(360, 740);
+    final state = await _pumpApp(tester, size);
+    final lesson = Lessons.all.first;
+
+    await _openTab(tester, size, '課程');
+    await tester.tap(find.text(lesson.title));
+    await tester.pumpAndSettle();
+
+    for (var i = 0; i < lesson.cards.length - 1; i++) {
+      await tester.tap(find.text('下一個'));
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.text('完成本課'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('已完成本課'), findsOneWidget);
+    expect(find.text('做課後小測驗'), findsOneWidget);
+    expect(state.isLessonCompleted(lesson.id), isTrue);
+    expect(state.learnedCardCount(lesson), lesson.cards.length);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.text('回到課程列表'));
+    await tester.pumpAndSettle();
+    expect(find.text('已完成'), findsOneWidget);
+  });
+
+  testWidgets('單字複習：顯示意思後可以評估，並進入下一張', (tester) async {
+    const size = Size(360, 740);
+    final state = await _pumpApp(tester, size);
+
+    await _openReview(tester, size);
+    final first = Catalog.words.first;
+    expect(find.text(first.hangul), findsOneWidget);
+
+    await tester.tap(find.text('顯示意思'));
+    await tester.pumpAndSettle();
+    expect(find.text(first.meaning), findsOneWidget);
+    expect(find.text(first.example), findsOneWidget);
+
+    await tester.tap(find.text('熟悉'));
+    await tester.pumpAndSettle();
+
+    expect(state.isNewWord(first.id), isFalse);
+    expect(find.textContaining('第 2 /'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('朗讀：單字與例句的按鈕會把正確的韓文交給語音服務', (tester) async {
+    const size = Size(360, 740);
+    final speech = FakeSpeechService();
+    await _pumpApp(tester, size, speech: speech);
+
+    await _openReview(tester, size);
+    final first = Catalog.words.first;
+
+    // 還沒翻開：只有單字的朗讀按鈕。
+    expect(find.byTooltip('朗讀單字'), findsOneWidget);
+    expect(find.byTooltip('朗讀例句'), findsNothing);
+    await tester.tap(find.byTooltip('朗讀單字'));
+    await tester.pumpAndSettle();
+    expect(speech.spoken, <String>[first.hangul]);
+
+    // 翻開後：例句也有朗讀按鈕。
+    await tester.tap(find.text('顯示意思'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('朗讀例句'));
+    await tester.pumpAndSettle();
+    expect(speech.spoken, <String>[first.hangul, first.example]);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('朗讀：裝置無法朗讀時顯示提示，而不是默默沒聲音', (tester) async {
+    const size = Size(360, 740);
+    final speech = FakeSpeechService(available: false);
+    await _pumpApp(tester, size, speech: speech);
+
+    await _openReview(tester, size);
+    await tester.tap(find.byTooltip('朗讀單字'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('找不到韓文語音'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('朗讀：一輪複習的每個單字與例句都能交給語音服務', (tester) async {
+    const size = Size(360, 740);
+    final speech = FakeSpeechService();
+    await _pumpApp(tester, size, speech: speech);
+    await _openReview(tester, size);
+
+    // 一張一張評分，把整輪單字走完，每張都按單字與例句的朗讀按鈕。
+    final expected = <String>[];
+    const queueLength = AppState.newWordsPerRound;
+    for (var i = 0; i < queueLength; i++) {
+      final word = Catalog.words[i];
+      await tester.tap(find.byTooltip('朗讀單字'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('顯示意思'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('朗讀例句'));
+      await tester.pumpAndSettle();
+      expected..add(word.hangul)..add(word.example);
+      await tester.tap(find.text('普通'));
+      await tester.pumpAndSettle();
+    }
+    expect(speech.spoken, expected);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('單字分頁：所有單字依主題放在一起，點主題看到單字', (tester) async {
+    const size = Size(360, 740);
+    await _pumpApp(tester, size);
+    await _openTab(tester, size, '單字');
+
+    final topic = Catalog.topics.first;
+    await tester.tap(find.text(topic.title));
+    await tester.pumpAndSettle();
+    expect(find.text(topic.words.first.hangul), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('單字列：點單字列會朗讀', (tester) async {
+    const size = Size(360, 740);
+    final speech = FakeSpeechService();
+    await _pumpApp(tester, size, speech: speech);
+    await _openTab(tester, size, '單字');
+
+    final topic = Catalog.topics.first;
+    await tester.tap(find.text(topic.title));
+    await tester.pumpAndSettle();
+
+    final first = topic.words.first;
+    await tester.tap(find.text(first.hangul).first);
+    await tester.pumpAndSettle();
+    expect(speech.spoken, <String>[first.hangul]);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('複習這個主題：只出該主題的單字', (tester) async {
+    const size = Size(360, 740);
+    await _pumpApp(tester, size);
+    await _openTab(tester, size, '單字');
+
+    final topic = Catalog.topics[1];
+    await tester.tap(find.text(topic.title));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('複習這個主題'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(topic.words.first.hangul), findsOneWidget);
+    expect(find.textContaining(topic.title), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('字母課：點發音方塊會朗讀完整音節，不是單獨的字母', (tester) async {
+    const size = Size(360, 740);
+    final speech = FakeSpeechService();
+    await _pumpApp(tester, size, speech: speech);
+
+    openLesson(tester.element(find.byType(AppShell)), Lessons.hangul.first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('下一個'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('ㅏ').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ㅓ').first);
+    await tester.pumpAndSettle();
+    expect(speech.spoken, <String>['아', '어']);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final size in _sizes) {
+    final name = '${size.width.toInt()}x${size.height.toInt()}';
+
+    testWidgets('文法課程在 $name 逐張看完，沒有版面例外，並可進入課後小測驗', (tester) async {
+      final state = await _pumpApp(tester, size);
+      final lesson = Lessons.grammar.first;
+
+      openLesson(tester.element(find.byType(AppShell)), lesson);
+      await tester.pumpAndSettle();
+
+      for (var i = 0; i < lesson.cards.length - 1; i++) {
+        await tester.tap(find.text('下一個'));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull, reason: '第 ${i + 2} 張卡片');
+      }
+      await tester.tap(find.text('完成本課'));
+      await tester.pumpAndSettle();
+      expect(find.text('已完成本課'), findsOneWidget);
+      expect(state.isLessonCompleted(lesson.id), isTrue);
+
+      await tester.tap(find.text('做課後小測驗'));
+      await tester.pumpAndSettle();
+      final total =
+          lesson.quizSeeds.length < 8 ? lesson.quizSeeds.length : 8;
+      expect(find.textContaining('第 1 / $total 題'), findsOneWidget);
+      expect(find.textContaining('____'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('教材說明頁在 $name 可顯示', (tester) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(const MaterialApp(home: AboutContentPage()));
+      await tester.pumpAndSettle();
+      expect(find.text('教材說明'), findsOneWidget);
+      expect(find.text('目前的教材量'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
+}
