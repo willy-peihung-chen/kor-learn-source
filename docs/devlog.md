@@ -302,3 +302,31 @@
 - 另外：一開始 Pages 沒有啟動部署（Actions 沒有任何紀錄），把 Branch 改成 None 再改回 main 後才開始部署。
 - 修正：新增 `tool/deploy_web.ps1`，打包後檢查圖示字型存在，再用 git 把 `build\web` 整包強制推到 `kor-learn`，不再手動拖曳。`docs/deploy_iphone.md` 改成這個做法。
 - 還沒確認：重新上傳後的圖示、iPhone 朗讀是否有聲音。
+
+### 11/18 晚上：iPhone 朗讀聲音很可怕
+
+- 你的回報：手機上的聲音非常可怕。
+- 原因（推測，待實機確認）：iOS 18 起 Safari 只給網頁一部分語音，常見的是機器感很重的「Eloquence」語音（Eddy、Flo、Grandma、Grandpa、Reed、Rocko、Sandy、Shelley）。原本的挑選規則對這些語音同分，可能挑到其中一個。
+- 修正：`lib/audio/speech_service.dart` 的挑選規則避開 Eloquence 與趣味語音，優先 Apple 的韓文語音（Yuna 等）；網頁版改用 voiceURI 對應語音。`test/speech_test.dart` 新增 3 項測試。
+- 限制：如果這支 iPhone 的 Safari 只提供 Eloquence 語音，這個修正也救不了。根本解法是預先產生高品質的語音檔（神經網路語音），App 有音檔就播音檔、沒有才用手機語音；需要你決定用哪個語音服務。
+- **尚未執行 analyze／test。**
+
+### 11/19 凌晨：高品質語音檔（MeloTTS）
+
+- 你的回報：手機的聲音很可怕。你在 Hugging Face 試用頁聽了 MeloTTS 韓文，覺得「太好了，比神經網路語音還好」→ 決定用 MeloTTS（選項 B）。
+- 做法：事先把 App 裡會朗讀的韓文做成 mp3（`web/audio/`），網頁版點喇叭時有語音檔就播，沒有才用手機語音。說明見 `docs/audio.md`。
+- 新增：`tool/make_audio.py`（收集約 5,480 段韓文 → MeloTTS → mp3，可中斷續做）、`tool/setup_tts.ps1`（建 Python 3.10 環境並安裝 MeloTTS）、`lib/audio/audio_key.dart`（語音檔檔名，與 Python 算法一致）、`test/audio_key_test.dart`。
+- 修改：`lib/audio/platform_speech_web.dart`（啟動時讀 `audio/index.json`，點擊當下直接播放，iPhone 可用）、`.gitignore`（語音檔、試聽檔、`.venv_tts` 不上傳原始碼倉庫）。
+- Claude 的環境無法安裝 MeloTTS、也無法播放聲音，所以安裝與試聽都在你的電腦上做。
+- **尚未執行 analyze／test；MeloTTS 尚未在你的電腦上安裝。**
+
+### 11/19 中午：語音檔全部產生完成
+
+- 你的回報：試聽 6 句「非常完美」，決定產生全部語音檔。
+- 驗證（上一節的程式）：`flutter analyze` No issues found、`flutter test` 130 項全部通過（11/19 00:44，含 `audio_key_test`）。之後只改了 Python 工具，Dart 程式沒有變動。
+- 安裝問題與原因：
+  - g2pkk 在 Windows 只找 eunjeon 套件 → `make_audio.py` 把 python-mecab-ko 包成 eunjeon；g2pkk 用 `find_spec` 檢查，所以補上 `__spec__`。韓文詞性分析器已正常載入（沒有出現退回簡單斷詞的提示）。
+  - 第一次執行時會從 Hugging Face 下載模型（MeloTTS 韓文、kykim/bert-kor-base），之後不再下載。
+  - 輸出存成記錄檔時，Windows 用 cp950 編碼，印出韓文會當掉（`UnicodeEncodeError`）→ 印不出的字改成 `\uXXXX`，語音檔不受影響。
+- 結果：`--sample` 6 句完成；全部 5,480 段完成，花 91 分鐘，0 句失敗，`web/audio` 共 77.0 MB。
+- 還沒確認：本機網頁與 iPhone 上實際播放語音檔；iPhone 圖示是否已恢復。

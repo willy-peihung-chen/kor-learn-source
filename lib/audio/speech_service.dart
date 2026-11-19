@@ -50,10 +50,34 @@ bool isKoreanVoice(Map<String, String> voice) {
       name.contains('한국');
 }
 
+/// iPhone／Mac 的「Eloquence」語音與趣味語音：機器感很重，聽起來很可怕。
+/// 只有在沒有其他韓文語音時才會用到。
+const List<String> _poorVoiceNames = <String>[
+  'eloquence',
+  'eddy',
+  'flo',
+  'grandma',
+  'grandpa',
+  'reed',
+  'rocko',
+  'sandy',
+  'shelley',
+];
+
+/// Apple 的韓文語音（品質比 Eloquence 好）。
+const List<String> _appleKoreanVoices = <String>['yuna', 'sora', 'minsu', 'jian', 'suhyun'];
+
 int _voiceScore(Map<String, String> voice) {
   final name = (voice['name'] ?? '').toLowerCase();
+  final uri = (voice['uri'] ?? '').toLowerCase();
   final locale = (voice['locale'] ?? '').toLowerCase().replaceAll('_', '-');
   var score = 0;
+  final words = name.split(RegExp(r'[^a-z]+'));
+  if (uri.contains('eloquence') ||
+      _poorVoiceNames.any((poor) => words.contains(poor))) {
+    score -= 20;
+  }
+  if (_appleKoreanVoices.any((good) => words.contains(good))) score += 3;
   // 神經語音（例如 Edge 的 Natural 語音）通常比傳統語音自然。
   if (name.contains('natural')) score += 4;
   if (name.contains('online')) score += 3;
@@ -73,7 +97,7 @@ Map<String, String>? pickKoreanVoice(List<Map<String, String>> voices) {
       continue;
     }
     final score = _voiceScore(voice);
-    if (score > bestScore) {
+    if (best == null || score > bestScore) {
       best = voice;
       bestScore = score;
     }

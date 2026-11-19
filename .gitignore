@@ -47,3 +47,9 @@ app.*.map.json
 # 本機記錄檔與截圖（不上傳）
 *_log.txt
 flutter_*.png
+
+# 語音檔（可由 tool/make_audio.py 重新產生，檔案多又大，不放進原始碼倉庫）
+/web/audio/
+/tool/audio_sample/
+/tool/audio_texts.tsv
+/.venv_tts/

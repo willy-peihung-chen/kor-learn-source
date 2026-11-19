@@ -46,6 +46,35 @@ void main() {
       expect(picked, isNull);
     });
 
+    test('iPhone：避開 Eloquence 與趣味語音，選 Apple 的韓文語音', () {
+      final picked = pickKoreanVoice(<Map<String, String>>[
+        voice('Grandpa (Korean (South Korea))', 'ko-KR'),
+        voice('Eddy (Korean (South Korea))', 'ko-KR'),
+        voice('Yuna', 'ko-KR'),
+        voice('Rocko (Korean (South Korea))', 'ko-KR'),
+      ]);
+      expect(picked?['name'], 'Yuna');
+    });
+
+    test('voiceURI 含 eloquence 的語音排在後面', () {
+      final picked = pickKoreanVoice(<Map<String, String>>[
+        <String, String>{
+          'name': 'Some Voice',
+          'locale': 'ko-KR',
+          'uri': 'com.apple.eloquence.ko-KR.Some',
+        },
+        voice('Other Voice', 'ko-KR'),
+      ]);
+      expect(picked?['name'], 'Other Voice');
+    });
+
+    test('只剩 Eloquence 語音時仍然可以朗讀', () {
+      final picked = pickKoreanVoice(<Map<String, String>>[
+        voice('Grandma (Korean (South Korea))', 'ko-KR'),
+      ]);
+      expect(picked, isNotNull);
+    });
+
     test('空清單回傳 null', () {
       expect(pickKoreanVoice(<Map<String, String>>[]), isNull);
     });
