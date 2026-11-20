@@ -19,6 +19,15 @@ class QuizGenerator {
   final Set<String>? Function(String wordId)? _wordPoolFor;
   final Map<String, Set<String>> _tokenCache = <String, Set<String>>{};
 
+  /// 同一個韓文寫法的所有單字（同形異義詞放在同一組）。
+  late final Map<String, List<WordItem>> _sensesByHangul = () {
+    final map = <String, List<WordItem>>{};
+    for (final word in Catalog.words) {
+      map.putIfAbsent(word.hangul, () => <WordItem>[]).add(word);
+    }
+    return map;
+  }();
+
   /// 依種子出題；找不到對應教材時回傳 null。
   QuizQuestion? build(QuizSeed seed) {
     switch (seed.kind) {
@@ -404,13 +413,25 @@ class QuizGenerator {
     });
   }
 
+  /// 兩個單字能不能同時出現在同一題的選項裡。
+  ///
+  /// 寫法相同就不行；意思重疊也不行。同形異義詞要把「所有意思」都算進去，
+  /// 例如 팔 有「手臂」和「八（漢字數詞）」，題目問 팔 時，
+  /// 「八（固有數詞）」（여덟）也算對，所以不能當干擾選項。
+  /// 這樣的比較偶爾會多排除一些候選，但不會讓兩個選項都對。
   bool _overlaps(WordItem a, WordItem b) {
     if (a.hangul == b.hangul) {
       return true;
     }
-    return _meaningTokens(a.meaning)
-        .intersection(_meaningTokens(b.meaning))
-        .isNotEmpty;
+    for (final x in _sensesByHangul[a.hangul] ?? <WordItem>[a]) {
+      final xTokens = _meaningTokens(x.meaning);
+      for (final y in _sensesByHangul[b.hangul] ?? <WordItem>[b]) {
+        if (xTokens.intersection(_meaningTokens(y.meaning)).isNotEmpty) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /// 可以當干擾選項的單字：寫法相同（同形異義詞）或意思重疊的都排除，

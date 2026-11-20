@@ -160,6 +160,73 @@ void main() {
     });
   });
 
+  group('同形異義詞的雙正解', () {
+    Set<String> tokens(String meaning) => meaning
+        .replaceAll(RegExp('（[^）]*）'), '')
+        .split('；')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toSet();
+
+    test('指定範圍時：另一個意思重疊的單字（여덟＝八）不會出現在 팔 的選項裡', () {
+      final narrow = QuizGenerator(
+        random: Random(1),
+        wordPoolFor: (_) => <String>{
+          'word:여덟',
+          'word:둘',
+          'word:셋',
+          'word:팔#臂',
+          'word:팔#八',
+        },
+      );
+      // 팔 有「手臂」和「八（漢字數詞）」兩個意思；여덟 是「八（固有數詞）」。
+      final a = narrow.build(const QuizSeed(QuizKind.wordMeaning, 'word:팔#臂'))!;
+      expect(a.options, isNot(contains('八（固有數詞）')));
+      expect(a.options, contains('手臂'));
+
+      // 反方向：問「八（固有數詞）」時，選項不能有 팔。
+      final b = narrow.build(const QuizSeed(QuizKind.meaningWord, 'word:여덟'));
+      // 範圍內有 팔（八）與 팔（手臂），둘、셋；팔 兩個意思都不能當干擾選項。
+      expect(b, isNotNull);
+      expect(b!.options, isNot(contains('팔')));
+    });
+
+    test('所有單字：選項裡除了答案，沒有任何單字的任何一個意思和答案重疊', () {
+      for (final word in Catalog.words) {
+        final senses = Catalog.words.where((w) => w.hangul == word.hangul);
+        final correctTokens = <String>{
+          for (final s in senses) ...tokens(s.meaning),
+        };
+        final a = generator.build(QuizSeed(QuizKind.wordMeaning, word.id))!;
+        for (var i = 0; i < a.options.length; i++) {
+          if (i == a.correctIndex) {
+            continue;
+          }
+          expect(
+            tokens(a.options[i]).intersection(correctTokens),
+            isEmpty,
+            reason: '${word.id} 的選項 ${a.options[i]}',
+          );
+        }
+
+        final b = generator.build(QuizSeed(QuizKind.meaningWord, word.id))!;
+        final wordTokens = tokens(word.meaning);
+        for (var i = 0; i < b.options.length; i++) {
+          if (i == b.correctIndex) {
+            continue;
+          }
+          for (final other in Catalog.words.where((w) => w.hangul == b.options[i])) {
+            expect(
+              tokens(other.meaning).intersection(wordTokens),
+              isEmpty,
+              reason: '${word.id} 的選項 ${b.options[i]}（${other.meaning}）',
+            );
+          }
+        }
+      }
+    });
+  });
+
   group('選項說明（作答後顯示每個選項的意思）', () {
     test('單字題：每個選項都有說明，且與該選項實際對應的單字一致', () {
       for (final word in Catalog.words) {
