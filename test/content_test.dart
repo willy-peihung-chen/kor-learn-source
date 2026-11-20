@@ -241,8 +241,8 @@ void main() {
       expect(unitsWithGrammar, greaterThanOrEqualTo(25));
     });
 
-    test('單元 1～5 的文法寫在說明卡裡，不再另外插入文法庫的卡片', () {
-      for (final unit in Lessons.units.take(5)) {
+    test('單元 1～10 的文法寫在說明卡裡，不再另外插入文法庫的卡片', () {
+      for (final unit in Lessons.units.take(10)) {
         expect(
           unit.cards.where((c) => c.kind == LessonCardKind.grammar),
           isEmpty,
@@ -253,6 +253,20 @@ void main() {
       expect(
         unit1.cards.expand((c) => c.grammarRefs),
         containsAll(<String>['eun_neun', 'ieyo', 'anieyo']),
+      );
+      // 單元 6～10 原本插入的文法卡，改成說明卡後仍要連到同樣的文法點。
+      expect(
+        Lessons.units
+            .sublist(5, 10)
+            .expand((u) => u.cards)
+            .expand((c) => c.grammarRefs),
+        containsAll(<String>[
+          'i_ga', 'e', 'itda_eopda', 'euseyo', // 單元 6
+          'eul_reul', 'eseo', 'do', // 單元 7
+          'at_eot', // 單元 8
+          'mot', 'su_isseoyo', // 單元 9
+          'ui', // 單元 10
+        ]),
       );
     });
 

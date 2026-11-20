@@ -563,6 +563,10 @@ def lint_chinese(text: str, where: str, report: Report) -> None:
 
 # ---------------------------------------------------------------- 單元規則
 
+# 已改成「文法寫在說明卡、用 grammarRefs 連到文法課」的單元數（從單元 1 起算）。
+GRAMMAR_IN_CONCEPT_UNITS = 10
+
+
 def check_units(units: list[Unit], words: list[Word], grammar: list[GPoint], report: Report) -> None:
     word_by_id = {w.id: w for w in words}
     gids = {g.id for g in grammar}
@@ -580,8 +584,8 @@ def check_units(units: list[Unit], words: list[Word], grammar: list[GPoint], rep
             report.error(where, '卡片少於 5 張')
         if not u.cards or not u.cards[-1].id.endswith(':dialog'):
             report.error(where, '最後一張卡片應該是對話（:dialog）')
-        if idx <= 5 and any(c.kind == 'grammar' for c in u.cards):
-            report.error(where, '單元 1～5 的文法要寫在說明卡（grammarRefs），不要插入文法庫的卡片')
+        if idx <= GRAMMAR_IN_CONCEPT_UNITS and any(c.kind == 'grammar' for c in u.cards):
+            report.error(where, f'單元 1～{GRAMMAR_IN_CONCEPT_UNITS} 的文法要寫在說明卡（grammarRefs），不要插入文法庫的卡片')
         for c in u.cards:
             cw = f'{u.id} {c.id}'
             for gid in ([c.grammar_id] if c.kind == 'grammar' else []) + c.grammar_refs:

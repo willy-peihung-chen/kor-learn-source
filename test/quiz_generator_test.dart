@@ -191,6 +191,37 @@ void main() {
       expect(b!.options, isNot(contains('팔')));
     });
 
+    test('已知的近義字組要共用至少一個意思，出題時才會互相排除', () {
+      // 中文寫法不同但意思實質相同的字（例如口語縮寫），
+      // 要靠共用的意思詞讓 _overlaps 把它們排除，否則選項會有兩個都對。
+      const pairs = <List<String>>[
+        <String>['이거', '이것'],
+        <String>['그거', '그것'],
+        <String>['저거', '저것'],
+        <String>['무슨', '어떤'],
+        <String>['어서', '빨리'],
+        <String>['실례', '실례합니다'],
+        <String>['테이블', '식탁'],
+        <String>['테이블', '책상'],
+        <String>['이쪽', '여기'],
+        <String>['저쪽', '저기'],
+        <String>['그쪽', '거기'],
+        <String>['그곳', '거기'],
+        <String>['공휴일', '휴일'],
+        <String>['한국말', '한국어'],
+        <String>['잠깐', '잠시'],
+      ];
+      for (final pair in pairs) {
+        final a = Catalog.words.firstWhere((w) => w.hangul == pair[0]);
+        final b = Catalog.words.firstWhere((w) => w.hangul == pair[1]);
+        expect(
+          tokens(a.meaning).intersection(tokens(b.meaning)),
+          isNotEmpty,
+          reason: '${pair[0]}（${a.meaning}）與 ${pair[1]}（${b.meaning}）',
+        );
+      }
+    });
+
     test('所有單字：選項裡除了答案，沒有任何單字的任何一個意思和答案重疊', () {
       for (final word in Catalog.words) {
         final senses = Catalog.words.where((w) => w.hangul == word.hangul);

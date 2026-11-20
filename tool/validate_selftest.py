@@ -26,3 +26,14 @@ for t in desc_good:
     r=v.Report(); v.lint_korean(t,'x',r,sentence=False)
     if r.issues: desc_fp.append((t,[i.message for i in r.issues]))
 print('說明文字 漏抓:',desc_miss); print('說明文字 誤報:',desc_fp)
+# 單元規則：單元 1～10 不可插入文法庫的卡片（要寫在說明卡、用 grammarRefs 連過去）。
+units=v.load_units(); grammar=v.load_grammar()
+rule_miss=[]
+for n in (6, 10):
+    us=v.load_units()
+    us[n-1].cards.insert(1, v.Card(id='grammar:wa_gwa', kind='grammar', grammar_id='wa_gwa'))
+    r=v.Report(); v.check_units(us, words, grammar, r)
+    if not any('不要插入文法庫的卡片' in i.message for i in r.issues): rule_miss.append(n)
+r=v.Report(); v.check_units(units, words, grammar, r)
+rule_fp=[i.message for i in r.issues]
+print('單元文法卡規則 漏抓:',rule_miss); print('單元文法卡規則 誤報:',rule_fp)
