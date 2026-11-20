@@ -4,6 +4,7 @@ import 'topic_animals.dart';
 import 'topic_body.dart';
 import 'topic_clothes.dart';
 import 'topic_colors.dart';
+import 'topic_concepts.dart';
 import 'topic_family.dart';
 import 'topic_feelings.dart';
 import 'topic_food.dart';
@@ -52,4 +53,5 @@ const List<WordTopic> allWordTopics = <WordTopic>[
   topicVerbs,
   topicAdjectives,
   topicFunction,
+  topicConcepts,
 ];
