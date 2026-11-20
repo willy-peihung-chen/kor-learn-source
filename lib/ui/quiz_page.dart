@@ -490,9 +490,7 @@ class _QuizSessionPageState extends State<QuizSessionPage> {
                   ),
                 ),
                 // 選項裡有韓文就能點喇叭聽（不會選到這個選項）。
-                // 聽音辨字題不加，否則可以逐一比對聲音，等於直接給答案。
-                if (question.kind != QuizKind.listenSyllable &&
-                    _hasKorean(question.options[i]))
+                if (showsOptionSpeaker(question.kind, question.options[i]))
                   SpeakButton(
                     text: question.options[i],
                     tooltip: '朗讀選項',
@@ -570,3 +568,17 @@ class _QuizSessionPageState extends State<QuizSessionPage> {
 }
 
 bool _hasKorean(String text) => splitKoreanRuns(text).any((r) => r.isKorean);
+
+/// 選項要不要放朗讀喇叭。
+///
+/// - 聽音辨字：不放，否則可以逐一比對聲音，等於直接給答案。
+/// - 單字→中文：選項是中文意思，只是偶爾在括號裡夾著韓文
+///   （例如「名字（對長輩的敬語為 성함）」），放了喇叭只有某幾個選項有，
+///   看起來很奇怪，所以不放。
+/// - 其他題型：選項裡有韓文才放。
+bool showsOptionSpeaker(QuizKind kind, String option) {
+  if (kind == QuizKind.listenSyllable || kind == QuizKind.wordMeaning) {
+    return false;
+  }
+  return _hasKorean(option);
+}
