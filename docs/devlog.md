@@ -16,7 +16,8 @@
 - 你在 VS Code 終端機自己跑：`flutter analyze *> analyze_log.txt`、`flutter test *> test_log.txt`。我讀 log（UTF-16，需轉碼；先看時間戳確認不是舊的）。
 - 每次改完檔案我要附可複製的兩行指令；你跑完我直接讀 log，回報結果並附 http://localhost:5000。
 - 網頁版：`flutter run -d chrome --web-port=5000`（連接埠固定，學習紀錄才不會消失）。
-- 沒有 git。
+- Git：原始碼倉庫 `kor-learn-source`（Public），commit 信箱用 noreply；上線用 `tool\deploy_web.ps1` 推到 `kor-learn`。
+- **每次改動（含小改）都要先找沒看過撰寫過程的子代理做獨立審查，修完才給你 analyze／test 指令**；不用你提醒（11/20 你要求追加）。只有純錯字可以不審。
 
 ---
 
@@ -330,3 +331,28 @@
   - 輸出存成記錄檔時，Windows 用 cp950 編碼，印出韓文會當掉（`UnicodeEncodeError`）→ 印不出的字改成 `\uXXXX`，語音檔不受影響。
 - 結果：`--sample` 6 句完成；全部 5,480 段完成，花 91 分鐘，0 句失敗，`web/audio` 共 77.0 MB。
 - 還沒確認：本機網頁與 iPhone 上實際播放語音檔；iPhone 圖示是否已恢復。
+
+### 11/20 中午：文法說明重寫試作（單元 1～5）
+
+- 你的要求：單元學習裡突然插入文法卡很突兀，文法課說明也不夠清楚，希望中文多一點、解釋更清楚；先只教「單元例句實際用到的文法」，先做一小部分試試看，並用多工審查。
+- 決定：
+  - 單元 1～5 不再插入文法庫卡片，文法寫在單元的說明卡裡，卡片底下用 `grammarRefs` 連到文法課完整說明。
+  - 一個文法點只放在一個單元；搬動放錯位置的文法點（i_ga→單元 6、eul_reul→單元 7、su_isseoyo→單元 9、go_sipeoyo 與 buteo_kkaji→單元 12）。wa_gwa 只留在文法課。
+  - 單元 2、4 沒有新文法，所以沒有新增文法說明。
+- 改了什麼：
+  - `lib/data/unit_lessons.dart`、`lib/data/lessons.dart`（`grammarRefs`）、`lib/data/catalog.dart`（`grammarLessonOfPoint`）、`lib/ui/lesson_page.dart`（`ExplanationLine` 小標題、`_GrammarRefs`「想看更完整的說明」）。
+  - 重寫 7 個文法點的說明：eun_neun、ieyo、anieyo、ayo_eoyo、a_eo_juseyo、basics_dictform、euro（`lib/data/grammar/` 下各檔）。
+  - `tool/validate_content.py`、`tool/validate_selftest.py`、`test/content_test.dart`：新增規則（單元 1～5 不得有文法卡、`grammarRefs` 必須存在且不重複、說明裡的韓文也要檢查）與測試。
+- 問題與原因：審查抓到「三個文法」的說法不準、單元 3 空格說明與提前提到字典、eul_reul 卡放在練習之後、隱藏開關的文法卡未轉成說明卡、ㅡ 省略規則的敘述；都已修正。
+- 驗證：自動偵測 0 錯誤；兩輪獨立審查（內容與程式分開審）；`flutter analyze` No issues found、`flutter test` 133 項全部通過（11/20 14:00，log 時間晚於這批寫入）。
+- 還沒確認：實際畫面（本機網頁／手機）；新增說明文字沒有 MeloTTS 語音檔（需補產生再上線）；內容仍是「待查核」，AI 審查不等於專家查核；單元 6～31 還沒套用同樣做法。
+
+### 11/20 下午：測驗作答後顯示每個選項的意思
+
+- 你的要求：課後練習選出答案後，其他選項也要顯示它們的意思；只做單字題就夠。
+- 決定：只做單字→中文、中文→單字兩種題型；字母、音節、文法題沒有「意思」可顯示，不做。選項說明只用「該題干擾選項的候選單字」（已套用學習範圍），不顯示範圍外的同形詞意思，避免洩漏還沒學過的單字。
+- 改了什麼：`lib/data/quiz_types.dart`（`QuizQuestion.optionNotes`）、`lib/logic/quiz_generator.dart`（兩種單字題填入說明、`_joinUnique`）、`lib/ui/quiz_page.dart`（作答後在選項底下顯示說明）、`test/quiz_generator_test.dart`（新增「選項說明」2 項測試）。
+- 問題與原因：這批我先回報「尚未審查」，等你問了才派審查員，流程有漏；已把「每次改動都要自動審查」寫進交接包與本日誌的開發流程。
+- 驗證：獨立審查 1 輪（無必改）；`flutter analyze` No issues found、`flutter test` 133 項全部通過（11/20 14:00）。
+- 還沒確認：手機與窄螢幕上選項變兩行的實際版面（程式審查認為沒有溢位風險）。
+- 已知待處理（舊有問題，審查發現）：同形異義詞可能讓兩個選項都對（例如題目是 배「梨」，選項出現 배 另一個意思「船」的單字）；建議下一批修，並新增「限制學習範圍時選項說明」的測試。

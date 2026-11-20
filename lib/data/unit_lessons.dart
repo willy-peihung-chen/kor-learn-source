@@ -404,14 +404,22 @@ Lesson _unitIntroduce() => Lesson(
           id: 'u1:pattern',
           title: '句型：저는 ___이에요／예요',
           paragraphs: const <String>[
-            '「저는」＝ 저（我）＋ 는（主題助詞，可以想成「至於我」）。「이에요／예요」相當於中文的「是」。',
-            '選哪一個，只看前一個詞的最後一個字有沒有收尾音：학생（有）→ 학생이에요；의사（沒有）→ 의사예요。',
-            '問句不用改字，把語調往上揚就好：학생이에요?（你是學生嗎？）',
-            '否定：把「이에요」換成「이 아니에요」：학생이 아니에요（不是學生）。前一個詞沒有收尾音時用「가 아니에요」：의사가 아니에요（不是醫生）。',
+            '這個單元的主要句型用到三個文法：는（談的是…）、이에요／예요（是）、이／가 아니에요（不是）。下面用本單元的句子一個一個說明。',
+            '■ 저는：我＋는',
+            '저 是「我」的謙稱。後面的 는 表示「這句話要談的是我」，可以想成中文的「至於我…」「我呢…」。中文說「我是學生」，韓文說「저는 학생이에요」。',
+            '는 前面的字沒有收尾音時用 는（저는）；有收尾音時改成 은，例如下一個單元的 이것은（這個呢）。',
+            '■ 이에요／예요：是',
+            '相當於中文的「是」，但放在句尾。저는 학생이에요 照韓文的順序直翻是「我呢　學生　是」。',
+            '選哪一個，只看前面名詞的最後一個字有沒有收尾音：',
+            '・학생 的「생」有收尾音 ㅇ → 학생이에요',
+            '・의사 的「사」沒有收尾音 → 의사예요',
+            '問句不用改字，句尾語調往上揚就好：학생이에요?（你是學生嗎？）',
+            '■ 이／가 아니에요：不是',
+            '否定時，把 이에요／예요 換成 아니에요，前面的名詞再加 이 或 가：有收尾音加 이（학생이 아니에요），沒有收尾音加 가（의사가 아니에요）。',
+            '容易寫錯的地方：不要寫成 의사이에요、학생예요、의사이 아니에요；아니에요 也不要寫成 아니예요。',
           ],
+          grammarRefs: const <String>['eun_neun', 'ieyo', 'anieyo'],
         ),
-        _grammarCard('eun_neun'),
-        _grammarCard('ieyo'),
         LessonCard.sound(
           id: 'u1:drill1',
           title: '換詞練習・我是…',
@@ -458,7 +466,15 @@ Lesson _unitIntroduce() => Lesson(
             _sound('잘 부탁드립니다.', '請多指教。', SpeechTag.formal),
           ],
         ),
-        if (CourseOptions.showWorkplace) _grammarCard('mnida'),
+        if (CourseOptions.showWorkplace)
+          LessonCard.concept(
+            id: 'u1:formal_note',
+            title: '職場／正式版的句尾',
+            paragraphs: const <String>[
+              '職場、面試、對客人說話時，句尾會換成更正式的 -ㅂ니다／습니다。本單元只要認得 입니다（是）。',
+            ],
+            grammarRefs: const <String>['mnida'],
+          ),
         if (CourseOptions.showWorkplace)
           // 職場／正式版：目前隱藏，之後要加回時把開關改成 true。
         LessonCard.sound(
@@ -473,7 +489,15 @@ Lesson _unitIntroduce() => Lesson(
             _sound('저는 회사원입니다.', '我是上班族。', SpeechTag.formal),
           ],
         ),
-        if (CourseOptions.showHonorific) _grammarCard('speech_si'),
+        if (CourseOptions.showHonorific)
+          LessonCard.concept(
+            id: 'u1:polite_note',
+            title: '對陌生人、長輩的尊敬說法',
+            paragraphs: const <String>[
+              '句子裡加上 -(으)시-（例如 이세요、세요），表示尊敬對方，比 해요體 更客氣。',
+            ],
+            grammarRefs: const <String>['speech_si'],
+          ),
         if (CourseOptions.showHonorific)
           // 尊敬說法（-(이)세요、주시겠어요）：目前隱藏。
         LessonCard.sound(
@@ -544,7 +568,8 @@ Lesson _unitWhatIsThis() => Lesson(
           paragraphs: const <String>[
             '이것＝離說話的人近的東西（這個）。그것＝離聽的人近的東西（那個）。저것＝離兩個人都遠的東西（那個）。',
             '所以你指著自己手上的東西問「이것은 뭐예요?」，對方回答時通常會說「그것은 ○○이에요」，因為對他來說，那個東西在你那邊。這是中文沒有的分法，一開始容易搞混，多聽幾次對話就會習慣。',
-            '이것、그것、저것 最後都有收尾音，所以後面接「은」，不是「는」。',
+            '이것、그것、저것 最後都有收尾音，所以後面接「은」，不是「는」。這就是單元 1 學過的 는：前面有收尾音時改成 은。',
+            '「뭐예요?」＝ 뭐（什麼）＋ 예요（是），也是單元 1 的 이에요／예요：뭐 沒有收尾音，所以用 예요。中文說「這是什麼？」，韓文的順序是「이것은 뭐예요?」（這個呢 什麼 是？）。',
             '口語裡常縮短：이것은 → 이건、이것이 → 이게。所以實際上常聽到「이건 뭐예요?」「이게 뭐예요?」。本單元先用完整的 이것은，聽到縮短版時知道是同一個意思就好。',
           ],
         ),
@@ -590,13 +615,11 @@ Lesson _unitWhatIsThis() => Lesson(
             _sound('저것은 문이에요.', '那個是門。', SpeechTag.polite),
           ],
         ),
-        _grammarCard('i_ga'),
-        _grammarCard('anieyo'),
         LessonCard.sound(
           id: 'u2:drill2',
           title: '換詞練習・這不是…',
           paragraphs: const <String>[
-            '前一個詞有收尾音用「이 아니에요」，沒有用「가 아니에요」。',
+            '和單元 1 的 이／가 아니에요 一樣：前一個詞有收尾音用「이 아니에요」（책이 아니에요），沒有用「가 아니에요」（커피가 아니에요）。',
           ],
           items: <SoundItem>[
             _sound('이것은 책이 아니에요.', '這不是書。', SpeechTag.polite),
@@ -709,12 +732,12 @@ Lesson _unitOrdering() => Lesson(
           title: '句型：___ 주세요',
           paragraphs: const <String>[
             '「___ 주세요」＝ 請給我___。底線放想要的東西，例如 물 주세요（請給我水）。',
-            '口語裡常省略「을／를」（把東西直接放在 주세요 前面），這樣說很自然。',
+            '中文的「請給我」在前面，韓文的 주세요 在後面：물 주세요 → 水 請給我。',
+            '東西直接放在 주세요 前面就好，點餐時這樣說最自然。（完整的說法會在東西後面加 을／를，之後的單元會學。）',
             '加上「좀」（一下）語氣會更柔和：메뉴 좀 주세요（請給我一下菜單）。',
             '「더 주세요」＝請再多給我一些。',
           ],
         ),
-        _grammarCard('eul_reul'),
         LessonCard.sound(
           id: 'u3:drill1',
           title: '換詞練習・請給我…',
@@ -742,7 +765,6 @@ Lesson _unitOrdering() => Lesson(
             '四以上之後的數字與另一套（일 이 삼…）的用法，之後的單元再學。',
           ],
         ),
-        _grammarCard('wa_gwa'),
         LessonCard.sound(
           id: 'u3:drill2',
           title: '換詞練習・說數量',
@@ -758,14 +780,27 @@ Lesson _unitOrdering() => Lesson(
             _sound('콜라 세 잔 주세요.', '請給我三杯可樂。', SpeechTag.polite),
           ],
         ),
-        _grammarCard('a_eo_juseyo'),
-        _grammarCard('go_sipeoyo'),
+        LessonCard.concept(
+          id: 'u3:help',
+          title: '句型：___해 주세요（請幫我…）',
+          paragraphs: const <String>[
+            '前面的 주세요 是「請給我（東西）」；把它接在動詞後面，意思就變成「請幫我（做某件事）」。',
+            '■ 本單元用到的兩個',
+            '・계산하다（結帳）→ 계산해 주세요（請幫我結帳）',
+            '・포장하다（外帶、打包）→ 포장해 주세요（請幫我外帶）',
+            '■ 怎麼變',
+            '계산（結帳）＋ 하다（做）→ 계산하다（結帳這個動作）。這種以 하다 結尾的動詞，接 주세요 時把 하다 換成 해：계산하다 → 계산해 → 계산해 주세요。一般在 해 和 주세요 中間空一格（本 App 一律空格）。',
+            '其他不是 하다 結尾的動詞也能這樣用，但變化方式不同，之後的單元遇到時再學。',
+            '■ 問價錢',
+            '「얼마예요?」＝ 얼마（多少錢）＋ 예요（是），還是單元 1 的 이에요／예요。',
+          ],
+          grammarRefs: const <String>['a_eo_juseyo'],
+        ),
         LessonCard.sound(
           id: 'u3:pay',
           title: '結帳、外帶、問價錢',
           paragraphs: const <String>[
-            '「계산해 주세요」＝請幫我結帳，「포장해 주세요」＝請幫我外帶。這是「-아／어 주세요」（請幫我…）的句型。',
-            '「얼마예요?」＝多少錢？',
+            '每句點一下聽，再自己大聲念一次。',
           ],
           items: <SoundItem>[
             _sound('계산해 주세요.', '請幫我結帳。', SpeechTag.polite),
@@ -936,7 +971,6 @@ Lesson _unitTime() => Lesson(
             _sound('저녁은 몇 시예요?', '晚餐幾點？', SpeechTag.polite),
           ],
         ),
-        _grammarCard('buteo_kkaji'),
         if (CourseOptions.showWorkplace)
           // 職場／正式版：目前隱藏，之後要加回時把開關改成 true。
         LessonCard.sound(
@@ -1041,8 +1075,6 @@ Lesson _unitShopping() => Lesson(
             '回答是「___ 원이에요」（是___韓元）。',
           ],
         ),
-        _grammarCard('basics_dictform'),
-        _grammarCard('ayo_eoyo'),
         LessonCard.sound(
           id: 'u5:drill1',
           title: '換詞練習・多少錢',
@@ -1083,13 +1115,31 @@ Lesson _unitShopping() => Lesson(
             _sound('이만 원이에요.', '兩萬韓元。', SpeechTag.polite),
           ],
         ),
-        _grammarCard('euro'),
+        LessonCard.concept(
+          id: 'u5:grammar',
+          title: '本單元的兩個新文法',
+          paragraphs: const <String>[
+            '■ 비싸요、싸요：字典裡的樣子和說話時的樣子',
+            '韓文的形容詞和動詞，在字典裡都以 다 結尾，叫「辭典形」：비싸다（貴）、싸다（便宜）。',
+            '辭典形不能直接拿來說話。說話時把 다 拿掉（剩下的部分叫「語幹」），再接上禮貌的語尾 아요／어요：',
+            '・비싸다 → 語幹 비싸 → 비싸 ＋ 아요 → 비싸요',
+            '・싸다 → 語幹 싸 → 싸 ＋ 아요 → 싸요',
+            '選 아요 還是 어요，看語幹最後一個字的母音：是 ㅏ 或 ㅗ 接 아요，其他接 어요。비싸、싸 最後的母音都是 ㅏ，所以接 아요；兩個 ㅏ 碰在一起會合成一個，所以寫成 비싸요，不寫 비싸아요。',
+            '和中文不同的地方：中文說「這個很貴」，韓文的形容詞本身就能放在句尾，不用加「是」。所以是 좀 비싸요（有點貴），不要寫成 비싸이에요。',
+            '■ 카드로、현금으로：用…（付款方式）',
+            '로／으로 接在名詞後面，表示「用…」：카드로（用卡片）、현금으로（用現金）。',
+            '・前面的字沒有收尾音 → 로：카드 → 카드로',
+            '・前面的字有收尾音 → 으로：현금 → 현금으로',
+            '・例外：收尾音是 ㄹ 時也用 로，例如 지하철로（搭地鐵），之後的單元會遇到。',
+          ],
+          grammarRefs: const <String>['basics_dictform', 'ayo_eoyo', 'euro'],
+        ),
         LessonCard.sound(
           id: 'u5:pay',
           title: '買下來、付款',
           paragraphs: const <String>[
             '「이거 주세요」＝我要這個（單元 3 學過的 주세요）。',
-            '「카드로」＝用卡片，「현금으로」＝用現金。沒有收尾音或收尾音是 ㄹ 時用「로」，其他收尾音用「으로」。',
+            '「카드로 계산해 주세요」＝請用卡片結帳：카드로（用卡片）＋ 계산해 주세요（請幫我結帳，單元 3 學過）。',
           ],
           items: <SoundItem>[
             _sound('이거 주세요.', '我要這個。', SpeechTag.polite),
@@ -1099,7 +1149,6 @@ Lesson _unitShopping() => Lesson(
             _sound('좀 비싸요.', '有點貴。', SpeechTag.polite),
           ],
         ),
-        _grammarCard('su_isseoyo'),
         if (CourseOptions.showWorkplace)
           // 職場／正式版：目前隱藏，之後要加回時把開關改成 true。
         LessonCard.sound(
@@ -1209,6 +1258,7 @@ Lesson _unitDirections() => Lesson(
             '「있어요」＝在；有。之後單元 8 也會用到。',
           ],
         ),
+        _grammarCard('i_ga'),
         _grammarCard('itda_eopda'),
         _grammarCard('e'),
         LessonCard.sound(
@@ -1371,6 +1421,7 @@ Lesson _unitTransport() => Lesson(
             _sound('호텔에 어떻게 가요?', '怎麼去飯店？', SpeechTag.polite),
           ],
         ),
+        _grammarCard('eul_reul'),
         LessonCard.sound(
           id: 'u7:drill2',
           title: '換詞練習・搭什麼去',
@@ -1658,6 +1709,7 @@ Lesson _unitRepair() => Lesson(
           ],
         ),
         _grammarCard('mot'),
+        _grammarCard('su_isseoyo'),
         LessonCard.sound(
           id: 'u9:drill1',
           title: '練習・請對方幫忙',
@@ -2029,6 +2081,8 @@ Lesson _unitDaily() => Lesson(
         ),
         _grammarCard('go_isseoyo'),
         _grammarCard('go'),
+        _grammarCard('go_sipeoyo'),
+        _grammarCard('buteo_kkaji'),
         LessonCard.sound(
           id: 'u12:drill1',
           title: '練習・一天的作息',
@@ -4311,6 +4365,7 @@ LessonCard _u1NameSimple() => LessonCard.sound(
           paragraphs: const <String>[
             '「제」是「저의」（我的）的縮短說法。名字有收尾音時用「이에요」：例如名字叫 민석，就說 민석이에요。',
             '問陌生人名字，最常用的客氣說法是「이름이 어떻게 되세요?」。裡面的「-세요」是尊敬說法，先整句記住。',
+            '「이름이」的 이 是另一個助詞（標出「名字」是句子的主角），單元 6 會學；這幾句先整句記住就好。',
             '「이름이 어떻게 돼요?」也是禮貌說法，適合年紀相近的人。',
             '「이름이 뭐예요?」語氣比較直接，只對年紀相近、比較輕鬆的場合用。',
           ],

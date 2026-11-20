@@ -86,6 +86,16 @@ class Catalog {
 
   static GrammarPoint? grammarPointById(String id) => _pointById[id];
 
+  /// 文法點所在的文法課；找不到時為 null。
+  static GrammarLessonData? grammarLessonOfPoint(String pointId) {
+    for (final lesson in grammarLessons) {
+      if (lesson.points.any((p) => p.id == pointId)) {
+        return lesson;
+      }
+    }
+    return null;
+  }
+
   /// 同形異義詞：與 [word] 韓文寫法相同、但意思不同的其他單字。
   static List<WordItem> homographsOf(WordItem word) => words
       .where((w) => w.hangul == word.hangul && w.id != word.id)

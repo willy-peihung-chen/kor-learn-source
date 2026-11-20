@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/catalog.dart';
 import '../data/content_models.dart';
 import '../data/lessons.dart';
 import '../state/app_state.dart';
@@ -260,14 +261,7 @@ class LessonCardView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          for (final line in point.explanation)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: SpeakableText(
-                line,
-                style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
-              ),
-            ),
+          for (final line in point.explanation) ExplanationLine(line),
           const SizedBox(height: 8),
           Text('例句', style: theme.textTheme.titleSmall),
           const SizedBox(height: 4),
@@ -354,14 +348,8 @@ class LessonCardView extends StatelessWidget {
         children: <Widget>[
           Text(card.title, style: theme.textTheme.titleLarge),
           const SizedBox(height: 12),
-          for (final paragraph in card.paragraphs)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: SpeakableText(
-                paragraph,
-                style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
-              ),
-            ),
+          for (final paragraph in card.paragraphs) ExplanationLine(paragraph),
+          if (card.grammarRefs.isNotEmpty) _GrammarRefs(ids: card.grammarRefs),
           if (card.examples.isNotEmpty) ...<Widget>[
             const SizedBox(height: 4),
             Wrap(
@@ -508,6 +496,83 @@ class _SoundTile extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 說明文字的一行。以「■ 」開頭的是小標題；其他是一般段落（韓文後面有小喇叭）。
+class ExplanationLine extends StatelessWidget {
+  const ExplanationLine(this.text, {super.key});
+
+  /// 小標題的開頭記號。
+  static const String headingMark = '■ ';
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (text.startsWith(headingMark)) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 10, bottom: 6),
+        child: SpeakableText(
+          text.substring(headingMark.length),
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: SpeakableText(
+        text,
+        style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
+      ),
+    );
+  }
+}
+
+/// 說明卡最後的「完整說明在基礎文法的哪一課」。
+class _GrammarRefs extends StatelessWidget {
+  const _GrammarRefs({required this.ids});
+
+  final List<String> ids;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final lines = <String>[
+      for (final id in ids)
+        if ((Catalog.grammarPointById(id), Catalog.grammarLessonOfPoint(id))
+            case (final point?, final lesson?))
+          '「${point.title}」：基礎文法〈${lesson.title}〉',
+    ];
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            '想看更完整的說明',
+            style: theme.textTheme.labelLarge?.copyWith(color: scheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 4),
+          for (final line in lines)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: SpeakableText(line, style: theme.textTheme.bodyMedium),
+            ),
+        ],
       ),
     );
   }

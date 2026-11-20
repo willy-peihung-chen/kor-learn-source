@@ -69,6 +69,7 @@ class LessonCard {
     this.point,
     this.examples = const <Syllable>[],
     this.items = const <SoundItem>[],
+    this.grammarRefs = const <String>[],
   });
 
   factory LessonCard.sound({
@@ -111,6 +112,7 @@ class LessonCard {
     required String title,
     required List<String> paragraphs,
     List<Syllable> examples = const <Syllable>[],
+    List<String> grammarRefs = const <String>[],
   }) =>
       LessonCard._(
         id: id,
@@ -118,6 +120,7 @@ class LessonCard {
         title: title,
         paragraphs: paragraphs,
         examples: examples,
+        grammarRefs: grammarRefs,
       );
 
   final String id;
@@ -129,6 +132,16 @@ class LessonCard {
   final GrammarPoint? point;
   final List<Syllable> examples;
   final List<SoundItem> items;
+
+  /// 說明卡講到的文法點 id（文法庫 [GrammarPoint.id]）。
+  /// 畫面在卡片最後列出「完整說明在基礎文法的哪一課」；同一個文法點只放在一個單元。
+  final List<String> grammarRefs;
+
+  /// 這張卡片涵蓋的文法點 id：文法卡本身，或說明卡引用的文法點。
+  List<String> get grammarPointIds => <String>[
+        if (point != null) point!.id,
+        ...grammarRefs,
+      ];
 }
 
 class Lesson {

@@ -317,6 +317,18 @@ class QuizGenerator {
           '${_hanjaNote(word)}${_homographNote(word)}'
           '例句：${word.example}（${word.exampleMeaning}）',
       speakText: word.example,
+      // 選項是中文意思：作答後在每個選項底下標出它是哪個韓文單字。
+      optionNotes: <String?>[
+        for (var i = 0; i < built.options.length; i++)
+          i == built.correctIndex
+              ? word.hangul
+              : _joinUnique(
+                  others
+                      .where((w) => w.meaning == built.options[i])
+                      .map((w) => w.hangul),
+                  '、',
+                ),
+      ],
     );
   }
 
@@ -342,6 +354,18 @@ class QuizGenerator {
           '${_hanjaNote(word)}${_homographNote(word)}'
           '例句：${word.example}（${word.exampleMeaning}）',
       speakText: word.example,
+      // 選項是韓文單字：作答後在每個選項底下標出它的意思。
+      optionNotes: <String?>[
+        for (var i = 0; i < built.options.length; i++)
+          i == built.correctIndex
+              ? word.meaning
+              : _joinUnique(
+                  others
+                      .where((w) => w.hangul == built.options[i])
+                      .map((w) => w.meaning),
+                  ' / ',
+                ),
+      ],
     );
   }
 
@@ -407,6 +431,12 @@ class QuizGenerator {
     }
     final ids = topic.words.map((w) => w.id).toSet();
     return candidates.where((w) => ids.contains(w.id)).toList();
+  }
+
+  /// 去掉重複後用 [separator] 接起來；沒有內容時回傳 null。
+  String? _joinUnique(Iterable<String> items, String separator) {
+    final unique = items.toSet();
+    return unique.isEmpty ? null : unique.join(separator);
   }
 
   String _hanjaNote(WordItem word) =>

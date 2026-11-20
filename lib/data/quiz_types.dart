@@ -33,6 +33,7 @@ class QuizQuestion {
     required this.explanation,
     this.stimulus,
     this.speakText,
+    this.optionNotes,
   });
 
   final QuizKind kind;
@@ -48,6 +49,10 @@ class QuizQuestion {
 
   /// 作答後可以朗讀的韓文（例句）；沒有時為 null。
   final String? speakText;
+
+  /// 作答後顯示在每個選項底下的補充說明（例如選項的意思）。
+  /// 長度與 [options] 相同；某個選項沒有說明時該位置為 null；整題沒有時為 null。
+  final List<String?>? optionNotes;
 
   /// 答題判定：選到的選項索引是否為正確答案。
   bool isCorrect(int selected) => selected == correctIndex;

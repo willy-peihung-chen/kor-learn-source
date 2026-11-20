@@ -219,17 +219,41 @@ void main() {
       }
     });
 
-    test('每個單元都融入了文法卡，而且同一個文法點只放在一個單元', () {
-      final seen = <String>{};
+    test('單元講到的文法點都存在，而且同一個文法點只放在一個單元', () {
+      final seen = <String, String>{};
+      var unitsWithGrammar = 0;
       for (final unit in Lessons.units) {
-        final grammarCards =
-            unit.cards.where((c) => c.kind == LessonCardKind.grammar).toList();
-        expect(grammarCards, isNotEmpty, reason: unit.id);
-        for (final card in grammarCards) {
-          expect(card.point, isNotNull, reason: card.id);
-          expect(seen.add(card.id), isTrue, reason: '${unit.id} ${card.id}');
+        final ids = <String>[
+          for (final card in unit.cards) ...card.grammarPointIds,
+        ];
+        if (ids.isNotEmpty) {
+          unitsWithGrammar++;
+        }
+        for (final id in ids) {
+          expect(Catalog.grammarPointById(id), isNotNull, reason: '${unit.id} $id');
+          expect(Catalog.grammarLessonOfPoint(id), isNotNull, reason: '${unit.id} $id');
+          expect(seen.containsKey(id), isFalse,
+              reason: '${unit.id} $id 已放在 ${seen[id]}');
+          seen[id] = unit.id;
         }
       }
+      // 不是每個單元都有新文法（例如只學數字的單元），但大部分單元都有。
+      expect(unitsWithGrammar, greaterThanOrEqualTo(25));
+    });
+
+    test('單元 1～5 的文法寫在說明卡裡，不再另外插入文法庫的卡片', () {
+      for (final unit in Lessons.units.take(5)) {
+        expect(
+          unit.cards.where((c) => c.kind == LessonCardKind.grammar),
+          isEmpty,
+          reason: unit.id,
+        );
+      }
+      final unit1 = Lessons.units.first;
+      expect(
+        unit1.cards.expand((c) => c.grammarRefs),
+        containsAll(<String>['eun_neun', 'ieyo', 'anieyo']),
+      );
     });
 
     test('單元有「對誰說哪一種」卡片；職場版與進階尊敬說法依開關顯示', () {

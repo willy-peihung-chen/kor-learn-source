@@ -160,6 +160,58 @@ void main() {
     });
   });
 
+  group('選項說明（作答後顯示每個選項的意思）', () {
+    test('單字題：每個選項都有說明，且與該選項實際對應的單字一致', () {
+      for (final word in Catalog.words) {
+        final a = generator.build(QuizSeed(QuizKind.wordMeaning, word.id))!;
+        expect(a.optionNotes, isNotNull, reason: word.id);
+        expect(a.optionNotes!.length, a.options.length, reason: word.id);
+        expect(a.optionNotes![a.correctIndex], word.hangul, reason: word.id);
+        for (var i = 0; i < a.options.length; i++) {
+          final note = a.optionNotes![i];
+          expect(note, isNotNull, reason: '${word.id} 選項 ${a.options[i]}');
+          // 說明裡的每個韓文單字，意思都要等於該選項。
+          for (final hangul in note!.split('、')) {
+            expect(
+              Catalog.words.any(
+                (w) => w.hangul == hangul && w.meaning == a.options[i],
+              ),
+              isTrue,
+              reason: '${word.id} 選項 ${a.options[i]} 說明 $hangul',
+            );
+          }
+        }
+
+        final b = generator.build(QuizSeed(QuizKind.meaningWord, word.id))!;
+        expect(b.optionNotes, isNotNull, reason: word.id);
+        expect(b.optionNotes!.length, b.options.length, reason: word.id);
+        expect(b.optionNotes![b.correctIndex], word.meaning, reason: word.id);
+        for (var i = 0; i < b.options.length; i++) {
+          final note = b.optionNotes![i];
+          expect(note, isNotNull, reason: '${word.id} 選項 ${b.options[i]}');
+          // 說明裡的每個意思，都要是這個韓文單字的某個意思。
+          final meanings = Catalog.words
+              .where((w) => w.hangul == b.options[i])
+              .map((w) => w.meaning)
+              .toSet();
+          expect(
+            meanings.contains(note) ||
+                note!.split(' / ').every(meanings.contains),
+            isTrue,
+            reason: '${word.id} 選項 ${b.options[i]} 說明 $note',
+          );
+        }
+      }
+    });
+
+    test('字母、音節、文法題沒有選項說明', () {
+      final q = generator.build(
+        QuizSeed(QuizKind.letterName, Catalog.letters.first.id),
+      )!;
+      expect(q.optionNotes, isNull);
+    });
+  });
+
   group('文法填空', () {
     test('所有例句都能出題，正確選項就是被挖空的部分', () {
       for (final id in Catalog.grammarExampleIds) {

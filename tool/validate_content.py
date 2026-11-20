@@ -323,6 +323,7 @@ class Card:
     paragraphs: list[str] = field(default_factory=list)
     items: list[Item] = field(default_factory=list)
     grammar_id: str | None = None
+    grammar_refs: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -384,6 +385,9 @@ def parse_card(elem: str, funcs: dict[str, str]) -> Card | None:
     para = named_arg(body, 'paragraphs')
     if para:
         card.paragraphs = strings_in(para)
+    refs = named_arg(body, 'grammarRefs')
+    if refs:
+        card.grammar_refs = strings_in(refs)
     items = named_arg(body, 'items')
     if items:
         lb = items.index('[')
@@ -469,8 +473,11 @@ def lint_korean(text: str, where: str, report: Report, *, sentence: bool) -> Non
     """韓文句子的規則檢查。sentence=True 代表這是要朗讀的句子（不是說明文字）。"""
     if sentence and JAMO_RE.search(text):
         report.error(where, f'句子裡有單獨的字母（電腦語音念不準）：{text}')
-    # 說明文字裡刻意舉出的錯誤寫法（例如「不要寫成 몇일」）不算錯。
-    shows_wrong_form = not sentence and re.search(r'不要寫成|（不是', text)
+    # 說明文字裡刻意舉出的錯誤寫法（例如「不要寫成 몇일」）不算錯：
+    # 「不要寫成」後面、到。；，：（ 為止的韓文不檢查（列舉時用「、」）。
+    if not sentence:
+        text = re.sub(r'不要寫成[^。；，：（\n]*', '不要寫成…', text)
+    shows_wrong_form = not sentence and re.search(r'（不是', text)
     for bad, good in MISSPELLINGS.items():
         if bad in text and not shows_wrong_form:
             report.error(where, f'拼寫錯誤「{bad}」應為「{good}」：{text}')
@@ -573,16 +580,19 @@ def check_units(units: list[Unit], words: list[Word], grammar: list[GPoint], rep
             report.error(where, '卡片少於 5 張')
         if not u.cards or not u.cards[-1].id.endswith(':dialog'):
             report.error(where, '最後一張卡片應該是對話（:dialog）')
-        if not any(c.kind == 'grammar' for c in u.cards):
-            report.error(where, '沒有融入任何文法卡')
+        if idx <= 5 and any(c.kind == 'grammar' for c in u.cards):
+            report.error(where, '單元 1～5 的文法要寫在說明卡（grammarRefs），不要插入文法庫的卡片')
         for c in u.cards:
             cw = f'{u.id} {c.id}'
+            for gid in ([c.grammar_id] if c.kind == 'grammar' else []) + c.grammar_refs:
+                if gid not in gids:
+                    report.error(cw, f'文法點不存在：{gid}')
+                if gid in used_grammar:
+                    report.error(cw, f'文法點已放在 {used_grammar[gid]}')
+                used_grammar[gid] = u.id
+            if c.grammar_refs and c.kind != 'concept':
+                report.error(cw, 'grammarRefs 只能放在說明卡（concept）')
             if c.kind == 'grammar':
-                if c.grammar_id not in gids:
-                    report.error(cw, f'文法點不存在：{c.grammar_id}')
-                if c.grammar_id in used_grammar:
-                    report.error(cw, f'文法點已放在 {used_grammar[c.grammar_id]}')
-                used_grammar[c.grammar_id] = u.id
                 continue
             if not c.id.startswith(f'u{idx}:'):
                 report.error(cw, f'卡片 id 應以 u{idx}: 開頭')
@@ -657,6 +667,7 @@ def check_grammar(points: list[GPoint], report: Report) -> None:
         where = f'文法 {g.id}（{g.file}）'
         for e in g.explanation:
             lint_chinese(e, where, report)
+            lint_korean(e, where, report, sentence=False)
         if len(g.examples) < 3:
             report.error(where, '例句少於 3 句')
         casual = g.file == 'lesson_speech_levels.dart' and (g.id.startswith('banmal') or g.id == 'speech_banmal')

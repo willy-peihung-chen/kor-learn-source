@@ -438,6 +438,8 @@ class _QuizSessionPageState extends State<QuizSessionPage> {
     final answered = _selected != null;
     final isCorrect = i == question.correctIndex;
     final isChosen = _selected == i;
+    final notes = question.optionNotes;
+    final note = (answered && notes != null && i < notes.length) ? notes[i] : null;
 
     var background = Colors.white;
     var border = scheme.outlineVariant;
@@ -467,7 +469,26 @@ class _QuizSessionPageState extends State<QuizSessionPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: <Widget>[
-                Expanded(child: Text(question.options[i], style: hangulStyle(18))),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(question.options[i], style: hangulStyle(18)),
+                      // 作答後，在每個選項底下顯示它的意思（或對應的韓文）。
+                      if (note != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            note,
+                            style: hangulStyle(
+                              14,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
                 // 選項裡有韓文就能點喇叭聽（不會選到這個選項）。
                 // 聽音辨字題不加，否則可以逐一比對聲音，等於直接給答案。
                 if (question.kind != QuizKind.listenSyllable &&

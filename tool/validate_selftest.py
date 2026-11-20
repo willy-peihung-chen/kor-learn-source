@@ -14,3 +14,15 @@ for t in good:
     r=v.Report(); v.lint_korean(t,'x',r,sentence=True); v.lint_particles(t,nouns,'x',r)
     if r.issues: fp.append((t,[i.message for i in r.issues]))
 print('漏抓:',miss); print('誤報:',fp)
+# 說明文字：「不要寫成」後面的錯誤寫法不算錯，但其他地方的錯誤仍要抓到。
+desc_bad=['의사이에요（醫生）。','학생예요。','몇일이에요?','不要寫成 의사이에요，正確是 학생예요','不要寫成 몇일；例：학생예요']
+desc_good=['容易寫錯：不要寫成 의사이에요、학생예요、의사이 아니에요；아니에요 也不要寫成 아니예요。','・의사 的「사」沒有收尾音 → 의사예요','ㄹ 收尾的字最容易錯：不要寫成 지하철으로、연필으로。']
+desc_miss=[]
+desc_fp=[]
+for t in desc_bad:
+    r=v.Report(); v.lint_korean(t,'x',r,sentence=False)
+    if not r.issues: desc_miss.append(t)
+for t in desc_good:
+    r=v.Report(); v.lint_korean(t,'x',r,sentence=False)
+    if r.issues: desc_fp.append((t,[i.message for i in r.issues]))
+print('說明文字 漏抓:',desc_miss); print('說明文字 誤報:',desc_fp)
