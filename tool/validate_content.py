@@ -702,6 +702,31 @@ def check_speak_strings(report: Report) -> None:
 
 # ---------------------------------------------------------------- 主程式
 
+def check_word_levels(words: list[Word], report: Report, *, data: str | None = None,
+                      expected: str | None = '__auto__') -> None:
+    """lib/data/word_level_data.dart 的等級要和國語院詞表一致（沒有詞表檔時只做結構檢查）。"""
+    path = os.path.join(DATA, 'word_level_data.dart')
+    if data is None:
+        if not os.path.exists(path):
+            report.error('單字等級', '找不到 lib/data/word_level_data.dart（請執行 tool/gen_word_levels.py）')
+            return
+        data = read(path)
+    hangul = {w.hangul for w in words}
+    for h, lv in re.findall(r"'([^']+)': (\d+),", data):
+        if h not in hangul:
+            report.error('單字等級', f'等級表裡的「{h}」不在單字庫（請重新執行 gen_word_levels.py）')
+        if lv not in ('1', '2'):
+            report.error('單字等級', f'「{h}」的等級是 {lv}；只能記 1 或 2（其餘視為「其他」）')
+    if expected == '__auto__':
+        import gen_word_levels
+        expected = gen_word_levels.expected()
+        if expected is None:
+            report.warn('單字等級', '找不到 docs/sources/ 的國語院詞表檔，沒有和官方詞表比對')
+            return
+    if expected is not None and expected != data:
+        report.error('單字等級', 'word_level_data.dart 與國語院詞表不一致（請重新執行 tool/gen_word_levels.py）')
+
+
 def main() -> int:
     report = Report()
     for path in sorted(glob.glob(os.path.join(ROOT, 'lib', '**', '*.dart'), recursive=True)) + \
@@ -714,6 +739,7 @@ def main() -> int:
     grammar = load_grammar()
     units = load_units()
     check_words(words, report)
+    check_word_levels(words, report)
     check_grammar(grammar, report)
     check_units(units, words, grammar, report)
     check_speak_strings(report)

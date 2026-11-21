@@ -37,3 +37,22 @@ for n in (6, 10):
 r=v.Report(); v.check_units(units, words, grammar, r)
 rule_fp=[i.message for i in r.issues]
 print('單元文法卡規則 漏抓:',rule_miss); print('單元文法卡規則 誤報:',rule_fp)
+
+# 單字等級表：多出單字庫沒有的字、等級不是 1/2、與詞表不一致都要抓到；現有資料不能誤報。
+import re as _re
+real=open(__import__("os").path.join(v.DATA,'word_level_data.dart'),encoding='utf-8').read()
+import gen_word_levels as _g
+exp=_g.expected()
+lv_cases={
+ '多出單字庫沒有的字': (real.replace("'가다': 1,","'가다': 1, '없는단어': 1,"), None, '不在單字庫'),
+ '等級是 3': (real.replace("'가다': 1,","'가다': 3,"), None, '只能記 1 或 2'),
+ }
+if exp is not None:
+    lv_cases['與詞表不一致']=(real.replace("'가다': 1,","'가다': 2,"), exp, '不一致')
+lv_miss=[]
+for name,(data,e,key) in lv_cases.items():
+    r=v.Report(); v.check_word_levels(words,r,data=data,expected=e)
+    if not any(key in i.message for i in r.issues): lv_miss.append(name)
+r=v.Report(); v.check_word_levels(words,r)
+lv_fp=[i.message for i in r.issues if i.level=='ERROR']
+print('單字等級 漏抓:',lv_miss); print('單字等級 誤報:',lv_fp, '（詞表比對：', '有' if exp else '沒有', '）')

@@ -4,6 +4,7 @@ import 'package:hangul_app/app.dart';
 import 'package:hangul_app/audio/speech_service.dart';
 import 'package:hangul_app/data/catalog.dart';
 import 'package:hangul_app/data/lessons.dart';
+import 'package:hangul_app/data/word_levels.dart';
 import 'package:hangul_app/state/app_state.dart';
 import 'package:hangul_app/storage/progress_repository.dart';
 import 'package:hangul_app/ui/about_page.dart';
@@ -220,7 +221,9 @@ void main() {
     final topic = Catalog.topics.first;
     await tester.tap(find.text(topic.title));
     await tester.pumpAndSettle();
-    expect(find.text(topic.words.first.hangul), findsWidgets);
+    // 頁面上最先看到的是 1 級那一段的第一個單字。
+    final shown = groupByLevel(topic.words).first.words.first;
+    expect(find.text(shown.hangul), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -234,7 +237,7 @@ void main() {
     await tester.tap(find.text(topic.title));
     await tester.pumpAndSettle();
 
-    final first = topic.words.first;
+    final first = groupByLevel(topic.words).first.words.first;
     await tester.tap(find.text(first.hangul).first);
     await tester.pumpAndSettle();
     expect(speech.spoken, <String>[first.hangul]);

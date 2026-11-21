@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../data/catalog.dart';
 import '../data/content_models.dart';
+import '../data/topic_groups.dart';
+import '../data/word_levels.dart';
 import '../state/app_state.dart';
 import 'app_scope.dart';
 import 'review_page.dart';
@@ -68,27 +70,35 @@ class VocabHomePage extends StatelessWidget {
         Text('主題', style: theme.textTheme.titleMedium),
         const SizedBox(height: 4),
         Text(
-          '點進主題可以瀏覽單字、聽發音；也可以只複習那一個主題。',
+          '點進主題可以瀏覽單字、聽發音；也可以只複習那一個主題。'
+          '主題裡的單字再依常用程度分成 1 級、2 級、其他。',
           style: theme.textTheme.bodySmall?.copyWith(color: muted),
         ),
-        const SizedBox(height: 12),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            const gap = 12.0;
-            final twoColumns = constraints.maxWidth >= 560;
-            final width = twoColumns
-                ? (constraints.maxWidth - gap) / 2
-                : constraints.maxWidth;
-            return Wrap(
-              spacing: gap,
-              runSpacing: gap,
-              children: <Widget>[
-                for (final topic in Catalog.topics)
-                  SizedBox(width: width, child: _TopicCard(topic: topic)),
-              ],
-            );
-          },
-        ),
+        for (final group in groupTopics(Catalog.topics)) ...<Widget>[
+          const SizedBox(height: 20),
+          Text(
+            '${group.title}・${group.topics.length} 個主題',
+            style: theme.textTheme.titleSmall?.copyWith(color: muted),
+          ),
+          const SizedBox(height: 10),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const gap = 12.0;
+              final twoColumns = constraints.maxWidth >= 560;
+              final width = twoColumns
+                  ? (constraints.maxWidth - gap) / 2
+                  : constraints.maxWidth;
+              return Wrap(
+                spacing: gap,
+                runSpacing: gap,
+                children: <Widget>[
+                  for (final topic in group.topics)
+                    SizedBox(width: width, child: _TopicCard(topic: topic)),
+                ],
+              );
+            },
+          ),
+        ],
       ],
     );
   }
@@ -157,6 +167,7 @@ class TopicWordsPage extends StatelessWidget {
     final state = AppScope.of(context);
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
+    final groups = groupByLevel(topic.words);
 
     return Scaffold(
       appBar: AppBar(title: Text(topic.title)),
@@ -184,16 +195,37 @@ class TopicWordsPage extends StatelessWidget {
               '漢字詞可以用中文聯想，但意思不一定完全相同。',
               style: theme.textTheme.bodySmall?.copyWith(color: muted),
             ),
-            const SizedBox(height: 12),
-            for (final word in topic.words)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: SectionCard(
-                  padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
-                  onTap: () => speakText(context, word.hangul),
-                  child: _WordRow(word: word, learned: !state.isNewWord(word.id)),
-                ),
+            if (groups.length > 1) ...<Widget>[
+              const SizedBox(height: 4),
+              Text(
+                '單字依國立國語院學習用詞表的等級分段，1 級最常用；'
+                '「其他」是詞表 3 級或詞表沒有列出的字。',
+                style: theme.textTheme.bodySmall?.copyWith(color: muted),
               ),
+            ],
+            for (final group in groups) ...<Widget>[
+              if (groups.length > 1) ...<Widget>[
+                const SizedBox(height: 12),
+                Text(
+                  '${group.level.label}・${group.level.hint}'
+                  '（${group.words.length} 個）',
+                  style: theme.textTheme.titleSmall,
+                ),
+              ],
+              const SizedBox(height: 8),
+              for (final word in group.words)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: SectionCard(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+                    onTap: () => speakText(context, word.hangul),
+                    child: _WordRow(
+                      word: word,
+                      learned: !state.isNewWord(word.id),
+                    ),
+                  ),
+                ),
+            ],
           ],
         ),
       ),
