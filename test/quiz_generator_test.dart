@@ -264,6 +264,21 @@ void main() {
         <String>['다양하다', '여러'],
         <String>['바뀌다', '바꾸다'],
         <String>['느끼다', '느낌'],
+        <String>['식구', '가족'],
+        <String>['음료', '음료수'],
+        <String>['무척', '아주'],
+        <String>['금방', '곧'],
+        <String>['자꾸', '계속'],
+        <String>['키우다', '기르다'],
+        <String>['하얗다', '하얀색'],
+        <String>['검다', '검은색'],
+        <String>['정확하다', '맞다'],
+        <String>['비용', '요금'],
+        <String>['안전', '안전하다'],
+        <String>['선택하다', '고르다'],
+        <String>['새로', '새롭다'],
+        <String>['소식', '뉴스'],
+        <String>['찾아보다', '찾다'],
       ];
       for (final pair in pairs) {
         final a = Catalog.words.firstWhere((w) => w.hangul == pair[0]);
