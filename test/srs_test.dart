@@ -176,6 +176,39 @@ void main() {
       expect(back.lastReviewedAt.isAtSameMomentAs(s.lastReviewedAt), isTrue);
     });
 
+    test('第一次評記下 firstReviewedAt，之後沿用不變', () {
+      final s = review(null, ReviewRating.normal);
+      expect(s.firstReviewedAt, now);
+      final t = review(s, ReviewRating.unfamiliar,
+          at: now.add(const Duration(days: 2)));
+      expect(t.firstReviewedAt, now);
+      final back = ReviewState.fromJson(t.toJson())!;
+      expect(back.firstReviewedAt!.isAtSameMomentAs(now), isTrue);
+    });
+
+    test('舊紀錄沒有 firstReviewedAt：照常讀取，再評也維持 null（不算成今天的新字）', () {
+      final old = <String, dynamic>{
+        'itemId': 'word:아이',
+        'repetitions': 1,
+        'intervalDays': 1,
+        'ease': 2.3,
+        'lapses': 0,
+        'dueAt': now.toUtc().toIso8601String(),
+        'lastReviewedAt':
+            now.subtract(const Duration(days: 1)).toUtc().toIso8601String(),
+      };
+      final s = ReviewState.fromJson(old)!;
+      expect(s.firstReviewedAt, isNull);
+      expect(s.repetitions, 1);
+      final t = review(s, ReviewRating.normal);
+      expect(t.firstReviewedAt, isNull);
+      expect(t.toJson().containsKey('firstReviewedAt'), isFalse);
+      // 這欄格式壞掉時也只當作沒有，不影響整筆紀錄。
+      final broken = ReviewState.fromJson(
+          <String, dynamic>{...old, 'firstReviewedAt': 'not a time'})!;
+      expect(broken.firstReviewedAt, isNull);
+    });
+
     test('格式錯誤的 JSON 回傳 null，不會丟例外', () {
       expect(ReviewState.fromJson(<String, dynamic>{'itemId': 1}), isNull);
       expect(ReviewState.fromJson(<String, dynamic>{}), isNull);
@@ -231,6 +264,27 @@ void main() {
       expect(queue, <String>['a', 'b', 'c']);
     });
 
+    test('dueLimit 限制到期卡張數（最早到期的先），新單字照樣補上', () {
+      final states = <String, ReviewState>{
+        'a': state('a', now.subtract(const Duration(hours: 1))),
+        'b': state('b', now.subtract(const Duration(hours: 3))),
+        'c': state('c', now.subtract(const Duration(hours: 2))),
+      };
+      final queue = ReviewQueue.build(
+        itemIds: ids,
+        states: states,
+        now: now,
+        newLimit: 1,
+        dueLimit: 2,
+      );
+      expect(queue, <String>['b', 'c', 'd']);
+      expect(
+        ReviewQueue.build(
+            itemIds: ids, states: states, now: now, newLimit: -3),
+        <String>['b', 'c', 'a'],
+      );
+    });
+
     test('dueIds 與 newIds 的數量', () {
       final states = <String, ReviewState>{
         'a': state('a', now.subtract(const Duration(hours: 1))),
@@ -254,12 +308,43 @@ void main() {
       expect(round.isFinished, isFalse);
       expect(round.idAt(round.position), 'a');
       expect(round.isRetry(round.position), isTrue);
-      round.rate(ReviewRating.unfamiliar); // a 又錯，再排一次
-      expect(round.queue, <String>['a', 'b', 'c', 'a', 'a']);
       round.rate(ReviewRating.normal);
       expect(round.isFinished, isTrue);
-      expect(round.ratedCount, 5);
+      expect(round.ratedCount, 4);
       expect(round.wordCount, 3);
+      expect(round.deferredIds, isEmpty);
+    });
+
+    test('還有別的卡時，同一張連續答錯會一直排到後面', () {
+      final round = ReviewRound(<String>['a', 'b', 'c']);
+      round.rate(ReviewRating.unfamiliar); // a → 最後
+      round.rate(ReviewRating.unfamiliar); // b → 最後
+      expect(round.queue, <String>['a', 'b', 'c', 'a', 'b']);
+      round.rate(ReviewRating.normal); // c
+      round.rate(ReviewRating.unfamiliar); // a 又錯，後面還有 b，排回最後
+      expect(round.queue, <String>['a', 'b', 'c', 'a', 'b', 'a']);
+      round.rate(ReviewRating.normal); // b
+      round.rate(ReviewRating.normal); // a
+      expect(round.isFinished, isTrue);
+      expect(round.deferredIds, isEmpty);
+    });
+
+    test('答錯的是剩下的最後一張：不馬上重出，留到下一輪', () {
+      final round = ReviewRound(<String>['a', 'b']);
+      round.rate(ReviewRating.normal); // a
+      round.rate(ReviewRating.unfamiliar); // b 是最後一張
+      expect(round.isFinished, isTrue);
+      expect(round.queue, <String>['a', 'b']);
+      expect(round.deferredIds, <String>['b']);
+
+      // 重做的卡在最後又答錯，也是留到下一輪。
+      final retry = ReviewRound(<String>['a', 'b']);
+      retry.rate(ReviewRating.unfamiliar); // a → 最後
+      retry.rate(ReviewRating.normal); // b
+      retry.rate(ReviewRating.unfamiliar); // 最後一張 a 又錯
+      expect(retry.isFinished, isTrue);
+      expect(retry.queue, <String>['a', 'b', 'a']);
+      expect(retry.deferredIds, <String>['a']);
     });
 
     test('沒有答錯時，張數不變，也沒有重做的卡', () {

@@ -3,11 +3,24 @@ import 'package:flutter/material.dart';
 import '../data/catalog.dart';
 import '../data/content_models.dart';
 import '../logic/srs.dart';
+import '../state/app_state.dart';
 import '../util/format.dart';
 import 'app_scope.dart';
 import 'speak_button.dart';
 import 'theme.dart';
 import 'widgets.dart';
+
+/// 首頁與單字頁共用的「新單字」狀態說明，數字都來自 [AppState]。
+String newWordStatus(AppState state) {
+  if (state.newWordsPaused) {
+    return '到期卡超過 ${AppState.backlogPauseThreshold} 張，新單字暫停';
+  }
+  final left = state.newWordsLeftToday;
+  if (left == 0) {
+    return '今天的新單字已學完';
+  }
+  return '今天還可以學 $left 個新單字';
+}
 
 /// 開始單字複習。[topic] 為 null 代表所有主題中到期與新的單字。
 void openReview(BuildContext context, {WordTopic? topic}) {
@@ -65,6 +78,11 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
     });
   }
 
+  void _addExtraNewWords() {
+    AppScope.of(context).addExtraNewWordsToday();
+    _restart();
+  }
+
   void _goPrevious() {
     final current = _browse ?? _round.position;
     if (current <= 0) {
@@ -98,52 +116,7 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
     final muted = theme.colorScheme.onSurfaceVariant;
 
     if (_round.isFinished) {
-      final nextDue = state.nextDueAtOf(widget.topic?.id);
-      final hasMore =
-          state.buildReviewQueue(topicId: widget.topic?.id).isNotEmpty;
-      return PageBody(
-        children: <Widget>[
-          SectionCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  _round.ratedCount > 0
-                      ? '本輪完成，共複習 ${_round.wordCount} 個單字'
-                          '${_round.ratedCount > _round.wordCount ? '（答錯的重做過，共評 ${_round.ratedCount} 次）' : ''}。'
-                      : (widget.topic == null
-                          ? '目前沒有需要複習的單字。'
-                          : '這個主題目前沒有需要複習的單字。'),
-                  style: theme.textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  nextDue == null
-                      ? '沒有排定的下次複習。'
-                      : '下一張預計在 ${formatDateTime(nextDue)} 之後到期。',
-                  style: theme.textTheme.bodyMedium?.copyWith(color: muted),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: <Widget>[
-                    if (hasMore) ...<Widget>[
-                      FilledButton(
-                        onPressed: _restart,
-                        child: const Text('再來一輪'),
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-                    OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('回到單字'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
+      return _finished(context);
     }
 
     final browsing = _browse != null;
@@ -154,12 +127,27 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
     final isRetry = _round.isRetry(index);
     final topic = Catalog.topicOfWord(word.id);
     final ratedAs = _round.ratingAt(index);
+    final isHard = state.isHardWord(word.id);
+    final note = word.note == null
+        ? const <Widget>[]
+        : <Widget>[
+            Text(
+              isHard ? '用法說明（這個字比較難記，先看這裡）' : '用法說明',
+              style: theme.textTheme.labelMedium?.copyWith(color: muted),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              word.note!,
+              style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
+            ),
+          ];
 
     return PageBody(
       children: <Widget>[
         Text(
           '第 ${index + 1} / ${_round.length} 張・'
           '${browsing ? '回頭查看（已評為「${ratedAs?.label ?? ''}」）' : (isRetry ? '再練一次' : (isNew ? '新單字' : '複習'))}'
+          '${isHard ? '・難記的字' : ''}'
           '${topic == null ? '' : '・${topic.title}'}',
           style: theme.textTheme.bodyMedium?.copyWith(color: muted),
         ),
@@ -186,6 +174,10 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
                     '漢字詞：${word.hanja}',
                     style: theme.textTheme.bodyMedium?.copyWith(color: muted),
                   ),
+                ],
+                if (isHard && note.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 20),
+                  ...note,
                 ],
                 const SizedBox(height: 20),
                 Text(
@@ -215,17 +207,9 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
                   word.exampleMeaning,
                   style: theme.textTheme.bodyLarge,
                 ),
-                if (word.note != null) ...<Widget>[
+                if (!isHard && note.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 20),
-                  Text(
-                    '用法說明',
-                    style: theme.textTheme.labelMedium?.copyWith(color: muted),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    word.note!,
-                    style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
-                  ),
+                  ...note,
                 ],
               ],
             ],
@@ -253,7 +237,7 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            '不熟悉：想不起來或想錯（這一輪會再出現一次）\n'
+            '不熟悉：想不起來或想錯（這一輪稍後再出現；最後一張則留到下一輪）\n'
             '普通：想了一下才想起來\n'
             '熟悉：一看就知道',
             style: theme.textTheme.bodySmall?.copyWith(color: muted, height: 1.5),
@@ -290,6 +274,90 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
             ],
           ),
         ],
+      ],
+    );
+  }
+
+  /// 一輪結束（或一開始就沒有卡）時的畫面：說明為什麼停、接下來可以做什麼。
+  Widget _finished(BuildContext context) {
+    final state = AppScope.of(context);
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    final topicId = widget.topic?.id;
+
+    final nextDue = state.nextDueAtOf(topicId);
+    final hasMore = state.buildReviewQueue(topicId: topicId).isNotEmpty;
+    final dueLeft = state.dueCountOf(topicId);
+    final unseenLeft = state.newWordIdsInOrder(topicId: topicId).length;
+    final canAddExtra = state.canAddExtraNewWordsOf(topicId);
+
+    final notes = <String>[
+      for (final id in _round.deferredIds)
+        '「${Catalog.wordById(id)?.hangul ?? id}」是這一輪的最後一張，答錯後先不馬上重出；'
+            '${Srs.relearnDelay.inMinutes} 分鐘後到期，到時在單字頁按「開始複習」就會出現。',
+      if (dueLeft > 0)
+        '還有 $dueLeft 張到期，按「再來一輪」繼續'
+            '（每輪最多 ${AppState.dueCardsPerRound} 張）。',
+      if (unseenLeft > 0 && state.newWordsPaused)
+        '全部單字到期的卡有 ${state.dueCount} 張（超過 ${AppState.backlogPauseThreshold} 張），'
+            '先暫停新單字，複習做完一些再學新字。'
+      else if (unseenLeft > 0 && state.newWordsLeftToday == 0)
+        '今天的 ${state.newWordsQuotaToday} 個新單字已經學完'
+            '（每天 ${AppState.newWordsPerDay} 個，單字頁和各主題共用）。',
+    ];
+
+    return PageBody(
+      children: <Widget>[
+        SectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                _round.ratedCount > 0
+                    ? '本輪完成，共複習 ${_round.wordCount} 個單字'
+                        '${_round.ratedCount > _round.wordCount ? '（答錯的重做過，共評 ${_round.ratedCount} 次）' : ''}。'
+                    : (widget.topic == null
+                        ? '目前沒有需要複習的單字。'
+                        : '這個主題目前沒有需要複習的單字。'),
+                style: theme.textTheme.titleMedium,
+              ),
+              for (final note in notes) ...<Widget>[
+                const SizedBox(height: 8),
+                Text(note, style: theme.textTheme.bodyMedium),
+              ],
+              const SizedBox(height: 8),
+              Text(
+                nextDue == null
+                    ? '沒有排定的下次複習。'
+                    : '下一張預計在 ${formatDateTime(nextDue)} 之後到期。',
+                style: theme.textTheme.bodyMedium?.copyWith(color: muted),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: <Widget>[
+                  if (hasMore)
+                    FilledButton(
+                      onPressed: _restart,
+                      child: const Text('再來一輪'),
+                    ),
+                  if (canAddExtra)
+                    FilledButton.tonal(
+                      onPressed: _addExtraNewWords,
+                      child: const Text(
+                        '今天再多學 ${AppState.extraNewWordsStep} 個',
+                      ),
+                    ),
+                  OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('回到單字'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }

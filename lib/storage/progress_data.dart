@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../data/quiz_types.dart';
 import '../logic/srs.dart';
 import '../util/time_codec.dart';
@@ -89,6 +91,8 @@ class ProgressData {
     Map<String, ReviewState>? reviews,
     List<QuizAttempt>? attempts,
     List<ActivityEntry>? activity,
+    this.extraNewWordsDate,
+    this.extraNewWords = 0,
   })  : completedLessons = completedLessons ?? <String>{},
         learnedItems = learnedItems ?? <String>{},
         reviews = reviews ?? <String, ReviewState>{},
@@ -104,6 +108,10 @@ class ProgressData {
   final Map<String, ReviewState> reviews;
   final List<QuizAttempt> attempts;
   final List<ActivityEntry> activity;
+
+  /// 「今天再多學」加上的新字額度，只在 [extraNewWordsDate]（本機日期 yyyy-mm-dd）那天有效。
+  String? extraNewWordsDate;
+  int extraNewWords;
 
   /// 只保留最近的紀錄，避免資料無限成長。
   void trim() {
@@ -122,6 +130,10 @@ class ProgressData {
         'reviews': reviews.values.map((r) => r.toJson()).toList(),
         'attempts': attempts.map((a) => a.toJson()).toList(),
         'activity': activity.map((a) => a.toJson()).toList(),
+        if (extraNewWordsDate != null) ...<String, dynamic>{
+          'extraNewWordsDate': extraNewWordsDate,
+          'extraNewWords': extraNewWords,
+        },
       };
 
   factory ProgressData.fromJson(Map<String, dynamic> json) {
@@ -159,6 +171,12 @@ class ProgressData {
           .map(ActivityEntry.fromJson)
           .whereType<ActivityEntry>()
           .toList(),
+      extraNewWordsDate: json['extraNewWordsDate'] is String
+          ? json['extraNewWordsDate'] as String
+          : null,
+      extraNewWords: json['extraNewWords'] is num
+          ? math.max(0, (json['extraNewWords'] as num).toInt())
+          : 0,
     );
   }
 }

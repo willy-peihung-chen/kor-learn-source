@@ -3,14 +3,30 @@ import 'package:flutter/material.dart';
 import '../data/catalog.dart';
 import '../data/labels.dart';
 import '../data/lessons.dart';
+import '../state/app_state.dart';
 import 'about_page.dart';
 import 'app_scope.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
+/// 打開學習進度頁（首頁與單字頁的連結）。
+void openProgress(BuildContext context) {
+  Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => Scaffold(
+        appBar: AppBar(title: const Text('學習進度')),
+        body: const SafeArea(child: ProgressPage(showHeadline: false)),
+      ),
+    ),
+  );
+}
+
 /// 學習進度：所有數字都來自實際的學習與測驗紀錄。
 class ProgressPage extends StatelessWidget {
-  const ProgressPage({super.key});
+  const ProgressPage({super.key, this.showHeadline = true});
+
+  /// 從其他頁打開時上方已有標題列，不再重複顯示頁內標題。
+  final bool showHeadline;
 
   @override
   Widget build(BuildContext context) {
@@ -21,11 +37,14 @@ class ProgressPage extends StatelessWidget {
     final accuracy = state.recentAccuracy;
     final weak = state.weakItems;
     final recent = state.recentActivity(limit: 8);
+    final hard = state.hardWordIds;
 
     return PageBody(
       children: <Widget>[
-        Text('學習進度', style: theme.textTheme.headlineSmall),
-        const SizedBox(height: 4),
+        if (showHeadline) ...<Widget>[
+          Text('學習進度', style: theme.textTheme.headlineSmall),
+          const SizedBox(height: 4),
+        ],
         Text(
           '以下數字都來自你的實際學習與測驗紀錄，只保存在這台裝置上。',
           style: theme.textTheme.bodyMedium?.copyWith(color: muted),
@@ -47,6 +66,11 @@ class ProgressPage extends StatelessWidget {
             ),
             StatTile(label: '待複習單字', value: '${state.dueCount}', caption: '張到期'),
             StatTile(
+              label: '今天的新單字',
+              value: '${state.newWordsLearnedToday} / ${state.newWordsQuotaToday}',
+              caption: state.newWordsPaused ? '到期卡太多，暫停中' : '已學 / 今天額度',
+            ),
+            StatTile(
               label: '最近測驗正確率',
               value: accuracy == null ? '—' : '${(accuracy * 100).round()}%',
               caption: accuracy == null ? '尚無測驗紀錄' : '近 ${state.recentAttemptCount} 題',
@@ -54,6 +78,57 @@ class ProgressPage extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 24),
+        SectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text('難記的字', style: theme.textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Text(
+                '單字複習中答「不熟悉」累計 ${AppState.hardWordLapses} 次以上的字'
+                '（2 小時內重複答錯只算一次）。複習時會先顯示用法說明。',
+                style: theme.textTheme.bodySmall?.copyWith(color: muted),
+              ),
+              const SizedBox(height: 8),
+              if (hard.isEmpty)
+                Text(
+                  '目前沒有。',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: muted),
+                )
+              else
+                for (final id in hard)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: Wrap(
+                            spacing: 10,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: <Widget>[
+                              Text(
+                                Catalog.wordById(id)?.hangul ?? id,
+                                style: hangulStyle(16),
+                              ),
+                              Text(
+                                Catalog.wordById(id)?.meaning ?? '',
+                                style: theme.textTheme.bodyMedium,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '不熟悉 ${state.lapsesOf(id)} 次',
+                          style: theme.textTheme.bodySmall?.copyWith(color: muted),
+                        ),
+                      ],
+                    ),
+                  ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
         SectionCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

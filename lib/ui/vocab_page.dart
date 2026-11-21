@@ -6,6 +6,7 @@ import '../data/topic_groups.dart';
 import '../data/word_levels.dart';
 import '../state/app_state.dart';
 import 'app_scope.dart';
+import 'progress_page.dart';
 import 'review_page.dart';
 import 'speak_button.dart';
 import 'theme.dart';
@@ -23,11 +24,12 @@ class VocabHomePage extends StatelessWidget {
 
     final due = state.dueCount;
     final fresh = state.newWordCount;
+    final hardCount = state.hardWordIds.length;
     final reviewDetail = (due == 0 && fresh == 0)
         ? '目前沒有需要複習的單字。'
         : <String>[
-            if (due > 0) '$due 張到期',
-            if (fresh > 0) '新單字 $fresh 個（每輪最多 ${AppState.newWordsPerRound} 個）',
+            if (due > 0) '$due 張到期（每輪最多 ${AppState.dueCardsPerRound} 張）',
+            if (fresh > 0) newWordStatus(state),
           ].join('、');
 
     return PageBody(
@@ -66,6 +68,17 @@ class VocabHomePage extends StatelessWidget {
             ],
           ),
         ),
+        if (hardCount > 0) ...<Widget>[
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => openProgress(context),
+              icon: const Icon(Icons.flag_outlined, size: 18),
+              label: Text('難記的字 $hardCount 個'),
+            ),
+          ),
+        ],
         const SizedBox(height: 20),
         Text('主題', style: theme.textTheme.titleMedium),
         const SizedBox(height: 4),

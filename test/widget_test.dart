@@ -6,10 +6,14 @@ import 'package:hangul_app/data/catalog.dart';
 import 'package:hangul_app/data/lessons.dart';
 import 'package:hangul_app/data/word_levels.dart';
 import 'package:hangul_app/state/app_state.dart';
+import 'package:hangul_app/logic/srs.dart';
+import 'package:hangul_app/storage/progress_data.dart';
 import 'package:hangul_app/storage/progress_repository.dart';
 import 'package:hangul_app/ui/about_page.dart';
 import 'package:hangul_app/ui/app_shell.dart';
+import 'package:hangul_app/ui/review_page.dart';
 import 'package:hangul_app/ui/lesson_page.dart';
+import 'package:hangul_app/ui/progress_page.dart';
 
 const List<Size> _sizes = <Size>[
   Size(360, 740), // 手機
@@ -38,6 +42,7 @@ Future<AppState> _pumpApp(
   WidgetTester tester,
   Size size, {
   SpeechService? speech,
+  ProgressData? data,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
@@ -45,6 +50,7 @@ Future<AppState> _pumpApp(
 
   final state = AppState(
     repository: MemoryProgressRepository(),
+    data: data,
     clock: () => DateTime(2026, 10, 29, 12),
   );
   await tester.pumpWidget(
@@ -101,6 +107,25 @@ void main() {
 
       await _openTab(tester, size, '首頁');
       expect(find.text('今日學習'), findsOneWidget);
+    });
+
+    testWidgets('學習進度頁在 $name 從頭捲到尾，沒有版面例外', (tester) async {
+      await _pumpApp(tester, size);
+      openProgress(tester.element(find.byType(AppShell)));
+      await tester.pumpAndSettle();
+      expect(find.text('今天的新單字'), findsOneWidget);
+      final scrollable = find
+          .descendant(
+            of: find.byType(ProgressPage),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await tester.scrollUntilVisible(
+        find.text('最近學習紀錄'),
+        300,
+        scrollable: scrollable,
+      );
+      expect(tester.takeException(), isNull);
     });
   }
 
@@ -234,7 +259,7 @@ void main() {
 
     // 一張一張評分，把整輪單字走完，每張都按單字與例句的朗讀按鈕。
     final expected = <String>[];
-    expect(queue.length, AppState.newWordsPerRound);
+    expect(queue.length, AppState.newWordsPerDay);
     for (var i = 0; i < queue.length; i++) {
       final word = Catalog.wordById(queue[i])!;
       await tester.tap(find.byTooltip('朗讀單字'));
@@ -250,6 +275,112 @@ void main() {
     expect(speech.spoken, expected);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('單字複習：最後一張答錯留到下一輪；新字額度用完後可以「今天再多學」', (tester) async {
+    const size = Size(360, 740);
+    final state = await _pumpApp(tester, size);
+    final queue = state.buildReviewQueue();
+    expect(queue.length, AppState.newWordsPerDay);
+    await _openReview(tester, size);
+
+    for (var i = 0; i < queue.length; i++) {
+      await tester.tap(find.text('顯示意思'));
+      await tester.pumpAndSettle();
+      final last = i == queue.length - 1;
+      await tester.tap(find.text(last ? '不熟悉' : '普通'));
+      await tester.pumpAndSettle();
+    }
+    // 最後一張答錯：不馬上重出，結束畫面說明。
+    expect(find.textContaining('本輪完成，共複習 ${queue.length} 個單字'),
+        findsOneWidget);
+    expect(find.textContaining('是這一輪的最後一張'), findsOneWidget);
+    expect(find.textContaining('今天的 ${AppState.newWordsPerDay} 個新單字已經學完'),
+        findsOneWidget);
+    expect(state.newWordsLeftToday, 0);
+
+    await tester.tap(find.text('今天再多學 ${AppState.extraNewWordsStep} 個'));
+    await tester.pumpAndSettle();
+    expect(state.newWordsQuotaToday,
+        AppState.newWordsPerDay + AppState.extraNewWordsStep);
+    expect(find.textContaining('第 1 / ${AppState.extraNewWordsStep} 張'),
+        findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('難記的字：複習時標示，翻開後用法說明在例句前面；進度頁列出來', (tester) async {
+    const size = Size(360, 740);
+    final word = Catalog.words.firstWhere((w) => w.note != null);
+    final now = DateTime(2026, 10, 29, 12);
+    final state = await _pumpApp(
+      tester,
+      size,
+      data: ProgressData(reviews: <String, ReviewState>{
+        word.id: ReviewState(
+          itemId: word.id,
+          repetitions: 0,
+          intervalDays: 0,
+          ease: 1.5,
+          lapses: AppState.hardWordLapses,
+          dueAt: now.subtract(const Duration(hours: 1)),
+          lastReviewedAt: now.subtract(const Duration(days: 1)),
+        ),
+      }),
+    );
+    expect(state.isHardWord(word.id), isTrue);
+
+    await _openReview(tester, size);
+    expect(find.text(word.hangul), findsOneWidget);
+    expect(find.textContaining('難記的字'), findsOneWidget);
+    await tester.tap(find.text('顯示意思'));
+    await tester.pumpAndSettle();
+    final noteLabel = find.textContaining('先看這裡');
+    expect(noteLabel, findsOneWidget);
+    expect(
+      tester.getTopLeft(noteLabel).dy,
+      lessThan(tester.getTopLeft(find.textContaining('例句（')).dy),
+    );
+
+    openProgress(tester.element(find.byType(ReviewSessionPage)));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('不熟悉 ${AppState.hardWordLapses} 次'),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(ProgressPage),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    expect(find.text('不熟悉 ${AppState.hardWordLapses} 次'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('首頁的「學習進度」連結可以打開進度頁', (tester) async {
+    const size = Size(360, 740);
+    await _pumpApp(tester, size);
+    await tester.scrollUntilVisible(
+      find.textContaining('學習進度（'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.textContaining('學習進度（'));
+    await tester.pumpAndSettle();
+    expect(find.text('今天的新單字'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('難記的字'),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(ProgressPage),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    expect(find.text('難記的字'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('單字分頁：所有單字依主題放在一起，點主題看到單字', (tester) async {
     const size = Size(360, 740);
     await _pumpApp(tester, size);

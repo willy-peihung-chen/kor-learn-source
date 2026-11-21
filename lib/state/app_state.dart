@@ -45,8 +45,22 @@ class AppState extends ChangeNotifier {
   final DateTime Function() _clock;
   final QuizGenerator quiz;
 
-  /// 每一輪單字複習最多加入的新單字數。
-  static const int newWordsPerRound = 10;
+  // ---- 單字複習的額度（全 App 共用；單字頁與主題頁都從這裡算） ----
+
+  /// 每天的新單字數（第一次評分的那天算一個）。
+  static const int newWordsPerDay = 10;
+
+  /// 按「今天再多學」一次增加的新單字數。
+  static const int extraNewWordsStep = 10;
+
+  /// 每一輪最多出的到期卡張數（不設每天上限，做完一輪可以再來一輪）。
+  static const int dueCardsPerRound = 20;
+
+  /// 到期卡超過這個數字時，暫停加新單字，先把積壓的複習做完。
+  static const int backlogPauseThreshold = 100;
+
+  /// 答「不熟悉」累計達到這個次數，標成「難記的字」。
+  static const int hardWordLapses = 4;
 
   Future<void> _saveChain = Future<void>.value();
 
@@ -122,16 +136,67 @@ class AppState extends ChangeNotifier {
         : studyOrderOf(topic).map((w) => w.id).toList();
   }
 
-  List<String> buildReviewQueue({
-    int newLimit = newWordsPerRound,
-    String? topicId,
-  }) =>
-      ReviewQueue.build(
+  /// 新單字依學習順序排好、還沒評過的 id（全部或單一主題）。
+  /// 一輪實際出幾個由 [newWordsAvailable] 決定，這裡不限數量。
+  List<String> newWordIdsInOrder({String? topicId}) =>
+      ReviewQueue.newIds(itemIds: _studyIdsOf(topicId), states: _data.reviews);
+
+  /// 組一輪複習：到期卡（最早到期的先，最多 [dueCardsPerRound] 張），
+  /// 再補今天還能學的新單字（[newWordsAvailable]）。
+  List<String> buildReviewQueue({String? topicId}) => ReviewQueue.build(
         itemIds: _studyIdsOf(topicId),
         states: _data.reviews,
         now: now,
-        newLimit: newLimit,
+        newLimit: newWordsAvailable,
+        dueLimit: dueCardsPerRound,
       );
+
+  /// 今天第一次評分的單字數（同一個字重做不重複算；跨過午夜重新計算）。
+  int get newWordsLearnedToday {
+    final today = now;
+    return _data.reviews.values
+        .where((r) =>
+            r.firstReviewedAt != null && isSameDay(r.firstReviewedAt!, today))
+        .length;
+  }
+
+  /// 今天按「今天再多學」加上的額度。
+  int get extraNewWordsToday =>
+      _data.extraNewWordsDate == dayKey(now) ? _data.extraNewWords : 0;
+
+  /// 今天的新單字總額度（每天固定額度＋今天加的）。
+  int get newWordsQuotaToday => newWordsPerDay + extraNewWordsToday;
+
+  /// 今天的新單字額度還剩幾個（不管有沒有暫停）。
+  int get newWordsLeftToday {
+    final left = newWordsQuotaToday - newWordsLearnedToday;
+    return left < 0 ? 0 : left;
+  }
+
+  /// 到期卡積壓太多，暫停新單字。
+  bool get newWordsPaused => dueCount > backlogPauseThreshold;
+
+  /// 現在一輪可以加入的新單字數（額度用完或暫停時為 0）。
+  int get newWordsAvailable => newWordsPaused ? 0 : newWordsLeftToday;
+
+  /// 可以按「今天再多學」：額度用完、沒有暫停、而且還有沒學過的字。
+  bool get canAddExtraNewWords => canAddExtraNewWordsOf(null);
+
+  /// 同上，但只看指定主題（null 代表全部）還有沒有沒學過的字。
+  bool canAddExtraNewWordsOf(String? topicId) =>
+      !newWordsPaused &&
+      newWordsLeftToday == 0 &&
+      newWordIdsInOrder(topicId: topicId).isNotEmpty;
+
+  /// 今天的新單字額度再加 [extraNewWordsStep] 個。
+  void addExtraNewWordsToday() {
+    final key = dayKey(now);
+    _data.extraNewWords =
+        (_data.extraNewWordsDate == key ? _data.extraNewWords : 0) +
+            extraNewWordsStep;
+    _data.extraNewWordsDate = key;
+    _commit();
+  }
 
   int get dueCount => dueCountOf(null);
 
@@ -152,6 +217,26 @@ class AppState extends ChangeNotifier {
       _wordIds.where((id) => _data.reviews.containsKey(id)).toList();
 
   int get learnedWordCount => learnedWordIds.length;
+
+  /// 答「不熟悉」累計 [hardWordLapses] 次以上的字。
+  bool isHardWord(String wordId) =>
+      (_data.reviews[wordId]?.lapses ?? 0) >= hardWordLapses;
+
+  /// 某個字答「不熟悉」的累計次數（2 小時內重複答錯只算一次，見 [Srs.recentWindow]）。
+  int lapsesOf(String wordId) => _data.reviews[wordId]?.lapses ?? 0;
+
+  /// 難記的字：依答錯次數由多到少，同次數照教材順序。
+  List<String> get hardWordIds {
+    final ids = _wordIds.where(isHardWord).toList();
+    final order = <String, int>{
+      for (var i = 0; i < ids.length; i++) ids[i]: i,
+    };
+    ids.sort((a, b) {
+      final byLapses = lapsesOf(b).compareTo(lapsesOf(a));
+      return byLapses != 0 ? byLapses : order[a]!.compareTo(order[b]!);
+    });
+    return ids;
+  }
 
   /// 某主題已評估過的單字數與總數。
   ({int learned, int total}) topicProgress(String topicId) {
@@ -188,12 +273,17 @@ class AppState extends ChangeNotifier {
 
   void rateWord(String wordId, ReviewRating rating) {
     final current = now;
+    final previous = _data.reviews[wordId];
     _data.reviews[wordId] = Srs.review(
-      previous: _data.reviews[wordId],
+      previous: previous,
       itemId: wordId,
       rating: rating,
       now: current,
     );
+
+    // 今天已經評過這個字（例如答錯後重做）：不再多算一張。
+    final countedToday =
+        previous != null && isSameDay(previous.lastReviewedAt, current);
 
     // 同一天連續的複習合併成一筆紀錄。
     final last = _data.activity.isEmpty ? null : _data.activity.last;
@@ -202,9 +292,10 @@ class AppState extends ChangeNotifier {
         type: 'review',
         label: last.label,
         at: current,
-        count: last.count + 1,
+        count: countedToday ? last.count : last.count + 1,
       );
-    } else {
+    } else if (!countedToday) {
+      // 中間做過別的事（例如測驗）時，今天已經算過的這張不另開一筆。
       _data.activity.add(
         ActivityEntry(type: 'review', label: '單字複習', at: current),
       );

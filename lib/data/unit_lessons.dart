@@ -494,7 +494,7 @@ Lesson _unitIntroduce() => Lesson(
             id: 'u1:polite_note',
             title: '對陌生人、長輩的尊敬說法',
             paragraphs: const <String>[
-              '句子裡加上 -(으)시-（例如 이세요、세요），表示尊敬對方，比 해요體 更客氣。',
+              '句子裡加上 -(으)시-（例如 이세요、세요），表示尊敬句子的主角；問對方的事情時，就是尊敬對方。句尾仍然是 해요體，只是多了 -(으)시-，所以比一般的 해요 說法更客氣。',
             ],
             grammarRefs: const <String>['speech_si'],
           ),
@@ -3361,7 +3361,7 @@ Lesson _unitPhone() => Lesson(
             _sound('메시지', '訊息'),
             _sound('이메일', '電子郵件'),
             _sound('주소', '地址'),
-            _sound('스마트폰', '智慧型手機'),
+            _sound('스마트폰', '智慧型手機；手機'),
             _sound('배터리', '電池'),
             _sound('충전기', '充電器'),
             _sound('연락해요', '聯絡（연락하다）'),

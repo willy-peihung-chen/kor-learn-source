@@ -21,6 +21,7 @@ class ReviewState {
     required this.lapses,
     required this.dueAt,
     required this.lastReviewedAt,
+    this.firstReviewedAt,
   });
 
   final String itemId;
@@ -40,6 +41,10 @@ class ReviewState {
   final DateTime dueAt;
   final DateTime lastReviewedAt;
 
+  /// 第一次評這張卡的時間（算「今天學了幾個新字」用）。
+  /// 加這個欄位之前的舊紀錄沒有這項，讀回來是 null（當作以前學的，不算今天）。
+  final DateTime? firstReviewedAt;
+
   bool isDue(DateTime now) => !dueAt.isAfter(now);
 
   Map<String, dynamic> toJson() => <String, dynamic>{
@@ -50,11 +55,14 @@ class ReviewState {
         'lapses': lapses,
         'dueAt': encodeTime(dueAt),
         'lastReviewedAt': encodeTime(lastReviewedAt),
+        if (firstReviewedAt != null)
+          'firstReviewedAt': encodeTime(firstReviewedAt!),
       };
 
   /// 資料格式不符時回傳 null，由呼叫端略過這筆紀錄。
   static ReviewState? fromJson(Map<String, dynamic> json) {
     try {
+      final first = json['firstReviewedAt'];
       return ReviewState(
         itemId: json['itemId'] as String,
         repetitions: (json['repetitions'] as num).toInt(),
@@ -63,7 +71,17 @@ class ReviewState {
         lapses: (json['lapses'] as num).toInt(),
         dueAt: decodeTime(json['dueAt'] as String),
         lastReviewedAt: decodeTime(json['lastReviewedAt'] as String),
+        // 舊紀錄沒有這欄；格式不對時也當作沒有，不影響其他欄位。
+        firstReviewedAt: first is String ? _tryDecode(first) : null,
       );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static DateTime? _tryDecode(String text) {
+    try {
+      return decodeTime(text);
     } catch (_) {
       return null;
     }
@@ -100,6 +118,9 @@ class Srs {
     final interval = previous?.intervalDays ?? 0;
     final ease = previous?.ease ?? initialEase;
     final lapses = previous?.lapses ?? 0;
+    // 第一次評：記下現在；之後沿用（舊紀錄沒有時維持 null，不會被算成今天的新字）。
+    final firstReviewedAt =
+        previous == null ? now : previous.firstReviewedAt;
     // 上一次評的是「不熟悉」（次數歸零），而且在 [recentWindow] 內。
     final recentlyFailed = previous != null &&
         previous.repetitions == 0 &&
@@ -116,6 +137,7 @@ class Srs {
           lapses: recentlyFailed ? lapses : lapses + 1,
           dueAt: now.add(relearnDelay),
           lastReviewedAt: now,
+          firstReviewedAt: firstReviewedAt,
         );
       case ReviewRating.normal:
         final grown = _nextInterval(
@@ -134,6 +156,7 @@ class Srs {
           lapses: lapses,
           dueAt: now.add(Duration(days: days)),
           lastReviewedAt: now,
+          firstReviewedAt: firstReviewedAt,
         );
       case ReviewRating.familiar:
         final grown = _nextInterval(
@@ -152,6 +175,7 @@ class Srs {
           lapses: lapses,
           dueAt: now.add(Duration(days: days)),
           lastReviewedAt: now,
+          firstReviewedAt: firstReviewedAt,
         );
     }
   }
@@ -198,15 +222,18 @@ class ReviewQueue {
     return itemIds.where((id) => !states.containsKey(id)).toList();
   }
 
+  /// [dueLimit] 為 null 時不限到期卡張數。
   static List<String> build({
     required Iterable<String> itemIds,
     required Map<String, ReviewState> states,
     required DateTime now,
     int newLimit = 5,
+    int? dueLimit,
   }) {
+    final due = dueIds(itemIds: itemIds, states: states, now: now);
     return <String>[
-      ...dueIds(itemIds: itemIds, states: states, now: now),
-      ...newIds(itemIds: itemIds, states: states).take(newLimit),
+      ...(dueLimit == null ? due : due.take(dueLimit)),
+      ...newIds(itemIds: itemIds, states: states).take(math.max(0, newLimit)),
     ];
   }
 }
@@ -215,11 +242,15 @@ class ReviewQueue {
 ///
 /// 評「不熟悉」的卡會排回本輪最後，直到評過「普通」或「熟悉」為止；
 /// 重排的卡不是新的一張，不會多佔新單字的名額。
+///
+/// 例外：答錯的是本輪剩下的最後一張時，不馬上重出（剛看完答案就再答一次沒有練習效果），
+/// 改記在 [deferredIds]，這張照排程 10 分鐘後到期，下一輪再練。
 class ReviewRound {
   ReviewRound(Iterable<String> ids) : _queue = List<String>.of(ids);
 
   final List<String> _queue;
   final Map<int, ReviewRating> _rated = <int, ReviewRating>{};
+  final List<String> _deferred = <String>[];
   int _position = 0;
 
   /// 本輪的卡片（包含排回來重做的），依出現順序。
@@ -246,6 +277,9 @@ class ReviewRound {
   /// 本輪複習到的不同單字數。
   int get wordCount => _queue.toSet().length;
 
+  /// 最後一張答錯、留到下一輪再練的單字（依答錯順序）。
+  List<String> get deferredIds => List<String>.unmodifiable(_deferred);
+
   /// 評目前這一張，並前進到下一張。
   void rate(ReviewRating rating) {
     if (isFinished) {
@@ -253,7 +287,12 @@ class ReviewRound {
     }
     _rated[_position] = rating;
     if (rating == ReviewRating.unfamiliar) {
-      _queue.add(_queue[_position]);
+      final id = _queue[_position];
+      if (_position == _queue.length - 1) {
+        _deferred.add(id);
+      } else {
+        _queue.add(id);
+      }
     }
     _position++;
   }

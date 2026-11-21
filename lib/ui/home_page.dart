@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../state/app_state.dart';
 import '../util/format.dart';
 import 'about_page.dart';
 import 'app_scope.dart';
 import 'lesson_page.dart';
+import 'progress_page.dart';
+import 'review_page.dart';
 import 'widgets.dart';
 
 /// 首頁：今日學習。
@@ -28,14 +29,14 @@ class HomePage extends StatelessWidget {
 
     final reviewParts = <String>[
       if (due > 0) '$due 張單字卡到期',
-      if (fresh > 0) '還有新單字可以學（每輪最多 ${AppState.newWordsPerRound} 張）',
+      if (fresh > 0) newWordStatus(state),
       if (mistakes > 0) '$mistakes 題錯題',
     ];
 
     void startLearning() {
       if (nextLesson != null) {
         openLesson(context, nextLesson);
-      } else if (due > 0 || fresh > 0) {
+      } else if (due > 0 || state.newWordsAvailable > 0) {
         onNavigate(2);
       } else {
         onNavigate(3);
@@ -95,6 +96,14 @@ class HomePage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: () => openProgress(context),
+            icon: const Icon(Icons.insights_outlined, size: 18),
+            label: const Text('學習進度（難記的字、錯題、各主題）'),
+          ),
+        ),
         Align(
           alignment: Alignment.centerLeft,
           child: TextButton.icon(
