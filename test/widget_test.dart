@@ -135,8 +135,8 @@ void main() {
     const size = Size(360, 740);
     final state = await _pumpApp(tester, size);
 
+    final first = Catalog.wordById(state.buildReviewQueue().first)!;
     await _openReview(tester, size);
-    final first = Catalog.words.first;
     expect(find.text(first.hangul), findsOneWidget);
 
     await tester.tap(find.text('顯示意思'));
@@ -152,13 +152,49 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('單字複習：評「不熟悉」的卡排到這一輪最後再出現一次', (tester) async {
+    const size = Size(360, 740);
+    final state = await _pumpApp(tester, size);
+    final queue = state.buildReviewQueue();
+    final first = Catalog.wordById(queue.first)!;
+
+    await _openReview(tester, size);
+    await tester.tap(find.text('顯示意思'));
+    await tester.pumpAndSettle();
+    // 自評標準說明顯示在按鈕下面。
+    expect(find.textContaining('想不起來或想錯'), findsOneWidget);
+    await tester.tap(find.text('不熟悉'));
+    await tester.pumpAndSettle();
+    // 張數多一張：第 2 / (原本張數 + 1) 張。
+    expect(find.textContaining('第 2 / ${queue.length + 1} 張'), findsOneWidget);
+
+    // 其餘的卡都評「普通」，最後一張應該是剛才答錯的字，標示「再練一次」。
+    for (var i = 1; i < queue.length; i++) {
+      await tester.tap(find.text('顯示意思'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('普通'));
+      await tester.pumpAndSettle();
+    }
+    expect(find.text(first.hangul), findsOneWidget);
+    expect(find.textContaining('再練一次'), findsOneWidget);
+    await tester.tap(find.text('顯示意思'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('熟悉'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('本輪完成，共複習 ${queue.length} 個單字'),
+        findsOneWidget);
+    expect(find.textContaining('共評 ${queue.length + 1} 次'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('朗讀：單字與例句的按鈕會把正確的韓文交給語音服務', (tester) async {
     const size = Size(360, 740);
     final speech = FakeSpeechService();
-    await _pumpApp(tester, size, speech: speech);
+    final state = await _pumpApp(tester, size, speech: speech);
 
+    final first = Catalog.wordById(state.buildReviewQueue().first)!;
     await _openReview(tester, size);
-    final first = Catalog.words.first;
 
     // 還沒翻開：只有單字的朗讀按鈕。
     expect(find.byTooltip('朗讀單字'), findsOneWidget);
@@ -192,14 +228,15 @@ void main() {
   testWidgets('朗讀：一輪複習的每個單字與例句都能交給語音服務', (tester) async {
     const size = Size(360, 740);
     final speech = FakeSpeechService();
-    await _pumpApp(tester, size, speech: speech);
+    final state = await _pumpApp(tester, size, speech: speech);
+    final queue = state.buildReviewQueue();
     await _openReview(tester, size);
 
     // 一張一張評分，把整輪單字走完，每張都按單字與例句的朗讀按鈕。
     final expected = <String>[];
-    const queueLength = AppState.newWordsPerRound;
-    for (var i = 0; i < queueLength; i++) {
-      final word = Catalog.words[i];
+    expect(queue.length, AppState.newWordsPerRound);
+    for (var i = 0; i < queue.length; i++) {
+      final word = Catalog.wordById(queue[i])!;
       await tester.tap(find.byTooltip('朗讀單字'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('顯示意思'));
@@ -221,8 +258,8 @@ void main() {
     final topic = Catalog.topics.first;
     await tester.tap(find.text(topic.title));
     await tester.pumpAndSettle();
-    // 頁面上最先看到的是 1 級那一段的第一個單字。
-    final shown = groupByLevel(topic.words).first.words.first;
+    // 頁面上最先看到的是第一段的第一個單字（片語主題不分段）。
+    final shown = levelGroupsOf(topic).first.words.first;
     expect(find.text(shown.hangul), findsWidgets);
     expect(tester.takeException(), isNull);
   });
@@ -237,7 +274,7 @@ void main() {
     await tester.tap(find.text(topic.title));
     await tester.pumpAndSettle();
 
-    final first = groupByLevel(topic.words).first.words.first;
+    final first = levelGroupsOf(topic).first.words.first;
     await tester.tap(find.text(first.hangul).first);
     await tester.pumpAndSettle();
     expect(speech.spoken, <String>[first.hangul]);
@@ -255,7 +292,8 @@ void main() {
     await tester.tap(find.text('複習這個主題'));
     await tester.pumpAndSettle();
 
-    expect(find.text(topic.words.first.hangul), findsOneWidget);
+    // 複習的第一張是主題頁畫面上的第一個字。
+    expect(find.text(studyOrderOf(topic).first.hangul), findsOneWidget);
     expect(find.textContaining(topic.title), findsWidgets);
     expect(tester.takeException(), isNull);
   });

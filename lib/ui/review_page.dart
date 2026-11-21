@@ -29,34 +29,29 @@ class ReviewSessionPage extends StatefulWidget {
 }
 
 class _ReviewSessionPageState extends State<ReviewSessionPage> {
-  List<String> _queue = <String>[];
+  ReviewRound _round = ReviewRound(const <String>[]);
   bool _initialized = false;
-  int _position = 0;
-  int _reviewed = 0;
   bool _revealed = false;
 
   /// 不為 null 代表正在回頭查看已評過的卡片（只能看，不能重評）。
   int? _browse;
 
-  /// 本輪每張卡片（以位置為鍵）已評的結果。
-  final Map<int, ReviewRating> _rated = <int, ReviewRating>{};
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_initialized) {
-      _queue = AppScope.of(context).buildReviewQueue(topicId: widget.topic?.id);
+      _round = ReviewRound(
+        AppScope.of(context).buildReviewQueue(topicId: widget.topic?.id),
+      );
       _initialized = true;
     }
   }
 
   void _rate(ReviewRating rating) {
     final state = AppScope.of(context);
-    state.rateWord(_queue[_position], rating);
+    state.rateWord(_round.idAt(_round.position), rating);
     setState(() {
-      _rated[_position] = rating;
-      _position++;
-      _reviewed++;
+      _round.rate(rating);
       _revealed = false;
     });
   }
@@ -64,17 +59,14 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
   void _restart() {
     final state = AppScope.of(context);
     setState(() {
-      _queue = state.buildReviewQueue(topicId: widget.topic?.id);
-      _position = 0;
-      _reviewed = 0;
+      _round = ReviewRound(state.buildReviewQueue(topicId: widget.topic?.id));
       _revealed = false;
       _browse = null;
-      _rated.clear();
     });
   }
 
   void _goPrevious() {
-    final current = _browse ?? _position;
+    final current = _browse ?? _round.position;
     if (current <= 0) {
       return;
     }
@@ -86,7 +78,9 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
     if (current == null) {
       return;
     }
-    setState(() => _browse = current + 1 >= _position ? null : current + 1);
+    setState(
+      () => _browse = current + 1 >= _round.position ? null : current + 1,
+    );
   }
 
   @override
@@ -103,8 +97,8 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
 
-    if (_position >= _queue.length) {
-      final nextDue = state.nextDueAt;
+    if (_round.isFinished) {
+      final nextDue = state.nextDueAtOf(widget.topic?.id);
       final hasMore =
           state.buildReviewQueue(topicId: widget.topic?.id).isNotEmpty;
       return PageBody(
@@ -114,8 +108,9 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  _reviewed > 0
-                      ? '本輪完成，共複習 $_reviewed 張。'
+                  _round.ratedCount > 0
+                      ? '本輪完成，共複習 ${_round.wordCount} 個單字'
+                          '${_round.ratedCount > _round.wordCount ? '（答錯的重做過，共評 ${_round.ratedCount} 次）' : ''}。'
                       : (widget.topic == null
                           ? '目前沒有需要複習的單字。'
                           : '這個主題目前沒有需要複習的單字。'),
@@ -152,18 +147,19 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
     }
 
     final browsing = _browse != null;
-    final index = _browse ?? _position;
+    final index = _browse ?? _round.position;
     final showAnswer = browsing || _revealed;
-    final word = Catalog.wordById(_queue[index])!;
+    final word = Catalog.wordById(_round.idAt(index))!;
     final isNew = state.isNewWord(word.id);
+    final isRetry = _round.isRetry(index);
     final topic = Catalog.topicOfWord(word.id);
-    final ratedAs = _rated[index];
+    final ratedAs = _round.ratingAt(index);
 
     return PageBody(
       children: <Widget>[
         Text(
-          '第 ${index + 1} / ${_queue.length} 張・'
-          '${browsing ? '回頭查看（已評為「${ratedAs?.label ?? ''}」）' : (isNew ? '新單字' : '複習')}'
+          '第 ${index + 1} / ${_round.length} 張・'
+          '${browsing ? '回頭查看（已評為「${ratedAs?.label ?? ''}」）' : (isRetry ? '再練一次' : (isNew ? '新單字' : '複習'))}'
           '${topic == null ? '' : '・${topic.title}'}',
           style: theme.textTheme.bodyMedium?.copyWith(color: muted),
         ),
@@ -241,7 +237,7 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
             '這張已經評過，只能查看；回到目前進度後繼續評下一張。',
             style: theme.textTheme.bodySmall?.copyWith(color: muted),
           )
-        else if (_revealed)
+        else if (_revealed) ...<Widget>[
           Row(
             children: <Widget>[
               for (final rating in ReviewRating.values) ...<Widget>[
@@ -254,13 +250,21 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
                 if (rating != ReviewRating.values.last) const SizedBox(width: 8),
               ],
             ],
-          )
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '不熟悉：想不起來或想錯（這一輪會再出現一次）\n'
+            '普通：想了一下才想起來\n'
+            '熟悉：一看就知道',
+            style: theme.textTheme.bodySmall?.copyWith(color: muted, height: 1.5),
+          ),
+        ]
         else
           FilledButton(
             onPressed: () => setState(() => _revealed = true),
             child: const Text('顯示意思'),
           ),
-        if (_position > 0 || browsing) ...<Widget>[
+        if (_round.position > 0 || browsing) ...<Widget>[
           const SizedBox(height: 12),
           Row(
             children: <Widget>[
@@ -277,7 +281,7 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
                   onPressed: browsing ? _goNext : null,
                   icon: const Icon(Icons.chevron_right),
                   label: Text(
-                    _browse != null && _browse! + 1 >= _position
+                    _browse != null && _browse! + 1 >= _round.position
                         ? '回到目前進度'
                         : '下一張',
                   ),

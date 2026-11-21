@@ -47,3 +47,40 @@ List<LevelGroup> groupByLevel(List<WordItem> words) {
         ),
   ];
 }
+
+/// 以片語為主的主題（例如問候語）：詞表大多沒收，依等級分段沒有意義。
+/// 這些主題在主題頁不分段、照原順序，全部複習時也排在最前面。
+const Set<String> phraseTopicIds = <String>{'greetings'};
+
+bool isPhraseTopic(WordTopic topic) => phraseTopicIds.contains(topic.id);
+
+/// 主題頁要顯示的段落：片語主題只有一段（照原順序），其他主題依等級分段。
+List<LevelGroup> levelGroupsOf(WordTopic topic) {
+  if (isPhraseTopic(topic)) {
+    // 只有一段時畫面不顯示等級標題，這裡的等級不會被用到。
+    return <LevelGroup>[LevelGroup(WordLevel.other, topic.words)];
+  }
+  return groupByLevel(topic.words);
+}
+
+/// 一個主題學新字的順序，和主題頁畫面上的順序相同。
+List<WordItem> studyOrderOf(WordTopic topic) => <WordItem>[
+      for (final group in levelGroupsOf(topic)) ...group.words,
+    ];
+
+/// 全部主題一起學新字的順序：片語主題先（照原順序），
+/// 其餘單字依 1 級、2 級、其他排列，同一級內維持主題順序。
+List<WordItem> globalStudyOrder(List<WordTopic> topics) {
+  final phrases = <WordItem>[
+    for (final topic in topics)
+      if (isPhraseTopic(topic)) ...topic.words,
+  ];
+  final others = <WordItem>[
+    for (final topic in topics)
+      if (!isPhraseTopic(topic)) ...topic.words,
+  ];
+  return <WordItem>[
+    ...phrases,
+    for (final group in groupByLevel(others)) ...group.words,
+  ];
+}

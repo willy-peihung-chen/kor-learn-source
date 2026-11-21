@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../data/catalog.dart';
 import '../data/lessons.dart';
 import '../data/quiz_types.dart';
+import '../data/word_levels.dart';
 import '../logic/progress_stats.dart';
 import '../logic/quiz_generator.dart';
 import '../logic/srs.dart';
@@ -105,12 +106,28 @@ class AppState extends ChangeNotifier {
         : topic.words.map((w) => w.id).toList();
   }
 
+  /// 全部主題學新字的順序（片語主題先，其餘依等級）；只算一次。
+  late final List<String> _globalStudyIds =
+      globalStudyOrder(Catalog.topics).map((w) => w.id).toList();
+
+  /// 複習時新單字的出現順序：全部時依 [globalStudyOrder]，
+  /// 單一主題時和主題頁畫面的順序相同（[studyOrderOf]）。
+  List<String> _studyIdsOf(String? topicId) {
+    if (topicId == null) {
+      return _globalStudyIds;
+    }
+    final topic = Catalog.topicById(topicId);
+    return topic == null
+        ? <String>[]
+        : studyOrderOf(topic).map((w) => w.id).toList();
+  }
+
   List<String> buildReviewQueue({
     int newLimit = newWordsPerRound,
     String? topicId,
   }) =>
       ReviewQueue.build(
-        itemIds: _wordIdsOf(topicId),
+        itemIds: _studyIdsOf(topicId),
         states: _data.reviews,
         now: now,
         newLimit: newLimit,
@@ -151,10 +168,13 @@ class AppState extends ChangeNotifier {
       ];
 
   /// 尚未到期的卡片中，最早的下次複習時間；沒有時為 null。
-  DateTime? get nextDueAt {
+  DateTime? get nextDueAt => nextDueAtOf(null);
+
+  /// 指定主題（null 代表全部）尚未到期的卡片中，最早的下次複習時間。
+  DateTime? nextDueAtOf(String? topicId) {
     final current = now;
     DateTime? earliest;
-    for (final id in _wordIds) {
+    for (final id in _wordIdsOf(topicId)) {
       final state = _data.reviews[id];
       if (state == null || state.isDue(current)) {
         continue;

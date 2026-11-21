@@ -75,6 +75,9 @@ class ReviewState {
 /// - 不熟悉：次數歸零，10 分鐘後再出現，係數下降。
 /// - 普通：間隔依序 1 天、3 天，之後為「前次間隔 × 係數」。
 /// - 熟悉：間隔依序 3 天、7 天，之後為「前次間隔 × 係數 × 1.3」，係數上升。
+/// - 剛答錯過（[recentWindow] 內）的卡：再答對時最多排到 1 天後、係數不上升
+///   （剛看過答案幾分鐘後答對，不代表真的記住了）；
+///   再答錯也不重複扣係數、不重複算失誤（同一輪重做好幾次只算一次）。
 class Srs {
   Srs._();
 
@@ -82,6 +85,10 @@ class Srs {
   static const double minEase = 1.3;
   static const double maxEase = 3.0;
   static const Duration relearnDelay = Duration(minutes: 10);
+
+  /// 「剛答錯過」的時間範圍：涵蓋同一輪的重做（答錯後 10 分鐘到期），
+  /// 但不跨過一整晚。用時間差而不是日期，跨過午夜的重做也一樣適用。
+  static const Duration recentWindow = Duration(hours: 2);
 
   static ReviewState review({
     ReviewState? previous,
@@ -93,6 +100,11 @@ class Srs {
     final interval = previous?.intervalDays ?? 0;
     final ease = previous?.ease ?? initialEase;
     final lapses = previous?.lapses ?? 0;
+    // 上一次評的是「不熟悉」（次數歸零），而且在 [recentWindow] 內。
+    final recentlyFailed = previous != null &&
+        previous.repetitions == 0 &&
+        previous.lapses > 0 &&
+        now.difference(previous.lastReviewedAt) < recentWindow;
 
     switch (rating) {
       case ReviewRating.unfamiliar:
@@ -100,19 +112,20 @@ class Srs {
           itemId: itemId,
           repetitions: 0,
           intervalDays: 0,
-          ease: math.max(minEase, ease - 0.2),
-          lapses: lapses + 1,
+          ease: recentlyFailed ? ease : math.max(minEase, ease - 0.2),
+          lapses: recentlyFailed ? lapses : lapses + 1,
           dueAt: now.add(relearnDelay),
           lastReviewedAt: now,
         );
       case ReviewRating.normal:
-        final days = _nextInterval(
+        final grown = _nextInterval(
           nextRepetitions: repetitions + 1,
           previousInterval: interval,
           ease: ease,
           multiplier: 1.0,
           firstSteps: const <int>[1, 3],
         );
+        final days = recentlyFailed ? math.min(1, grown) : grown;
         return ReviewState(
           itemId: itemId,
           repetitions: repetitions + 1,
@@ -123,18 +136,19 @@ class Srs {
           lastReviewedAt: now,
         );
       case ReviewRating.familiar:
-        final days = _nextInterval(
+        final grown = _nextInterval(
           nextRepetitions: repetitions + 1,
           previousInterval: interval,
           ease: ease,
           multiplier: 1.3,
           firstSteps: const <int>[3, 7],
         );
+        final days = recentlyFailed ? math.min(1, grown) : grown;
         return ReviewState(
           itemId: itemId,
           repetitions: repetitions + 1,
           intervalDays: days,
-          ease: math.min(maxEase, ease + 0.1),
+          ease: recentlyFailed ? ease : math.min(maxEase, ease + 0.1),
           lapses: lapses,
           dueAt: now.add(Duration(days: days)),
           lastReviewedAt: now,
@@ -194,5 +208,53 @@ class ReviewQueue {
       ...dueIds(itemIds: itemIds, states: states, now: now),
       ...newIds(itemIds: itemIds, states: states).take(newLimit),
     ];
+  }
+}
+
+/// 一輪複習的進行狀態（純邏輯，不依賴 UI）。
+///
+/// 評「不熟悉」的卡會排回本輪最後，直到評過「普通」或「熟悉」為止；
+/// 重排的卡不是新的一張，不會多佔新單字的名額。
+class ReviewRound {
+  ReviewRound(Iterable<String> ids) : _queue = List<String>.of(ids);
+
+  final List<String> _queue;
+  final Map<int, ReviewRating> _rated = <int, ReviewRating>{};
+  int _position = 0;
+
+  /// 本輪的卡片（包含排回來重做的），依出現順序。
+  List<String> get queue => List<String>.unmodifiable(_queue);
+
+  int get length => _queue.length;
+
+  /// 目前要評的卡片位置；等於 [length] 時代表這一輪做完了。
+  int get position => _position;
+
+  bool get isFinished => _position >= _queue.length;
+
+  String idAt(int index) => _queue[index];
+
+  /// 第 [index] 張已評的結果；還沒評時為 null。
+  ReviewRating? ratingAt(int index) => _rated[index];
+
+  /// 第 [index] 張是不是排回來重做的（同一個字在本輪前面已經出現過）。
+  bool isRetry(int index) => _queue.sublist(0, index).contains(_queue[index]);
+
+  /// 本輪評分的次數（重做也算一次）。
+  int get ratedCount => _rated.length;
+
+  /// 本輪複習到的不同單字數。
+  int get wordCount => _queue.toSet().length;
+
+  /// 評目前這一張，並前進到下一張。
+  void rate(ReviewRating rating) {
+    if (isFinished) {
+      throw StateError('這一輪已經結束');
+    }
+    _rated[_position] = rating;
+    if (rating == ReviewRating.unfamiliar) {
+      _queue.add(_queue[_position]);
+    }
+    _position++;
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hangul_app/data/catalog.dart';
 import 'package:hangul_app/data/lessons.dart';
 import 'package:hangul_app/data/quiz_types.dart';
+import 'package:hangul_app/data/word_levels.dart';
 import 'package:hangul_app/logic/quiz_generator.dart';
 import 'package:hangul_app/logic/srs.dart';
 import 'package:hangul_app/state/app_state.dart';
@@ -191,11 +192,45 @@ void main() {
     test('評「普通」之後，該單字不會馬上又出現在複習佇列', () async {
       final repo = await newRepository();
       final state = await AppState.load(repo, clock: () => now);
-      final id = Catalog.words.first.id;
-      expect(state.buildReviewQueue(), contains(id));
+      final id = state.buildReviewQueue().first;
       state.rateWord(id, ReviewRating.normal);
       expect(state.buildReviewQueue(), isNot(contains(id)));
       expect(state.dueCount, 0);
+      await state.flush();
+    });
+
+    test('新單字的順序：全部時問候語先、其餘依等級；主題時和主題頁相同', () async {
+      final repo = await newRepository();
+      final state = await AppState.load(repo, clock: () => now);
+
+      final all = state.buildReviewQueue(newLimit: 2000);
+      final expected = globalStudyOrder(Catalog.topics).map((w) => w.id);
+      expect(all, expected.toList());
+      expect(all.length, Catalog.words.length);
+      // 問候語主題排最前面，接著第一個非問候語的字是 1 級。
+      final greetings = Catalog.topicById('greetings')!;
+      expect(all.take(greetings.words.length),
+          greetings.words.map((w) => w.id));
+      expect(wordLevelOf(Catalog.wordById(all[greetings.words.length])!),
+          WordLevel.level1);
+
+      final topic = Catalog.topics.firstWhere((t) => t.id == 'verbs_move');
+      final topicQueue = state.buildReviewQueue(topicId: topic.id, newLimit: 200);
+      expect(topicQueue, studyOrderOf(topic).map((w) => w.id).toList());
+      await state.flush();
+    });
+
+    test('主題複習的「下一張到期時間」只看這個主題', () async {
+      final repo = await newRepository();
+      final state = await AppState.load(repo, clock: () => now);
+      final topicA = Catalog.topics[1];
+      final topicB = Catalog.topics[2];
+      // A 主題的字答錯：10 分鐘後到期；B 主題的字評普通：1 天後到期。
+      state.rateWord(topicA.words.first.id, ReviewRating.unfamiliar);
+      state.rateWord(topicB.words.first.id, ReviewRating.normal);
+      expect(state.nextDueAt, now.add(Srs.relearnDelay));
+      expect(state.nextDueAtOf(topicB.id), now.add(const Duration(days: 1)));
+      expect(state.nextDueAtOf(topicA.id), now.add(Srs.relearnDelay));
       await state.flush();
     });
   });

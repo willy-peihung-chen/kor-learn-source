@@ -62,6 +62,40 @@ void main() {
     });
   });
 
+  group('片語主題與學習順序', () {
+    test('問候語主題不分段，照原順序；一般主題依等級分段', () {
+      final greetings = Catalog.topicById('greetings')!;
+      expect(isPhraseTopic(greetings), isTrue);
+      expect(levelGroupsOf(greetings).length, 1);
+      expect(studyOrderOf(greetings), greetings.words);
+
+      final verbs = Catalog.topicById('verbs_move')!;
+      expect(isPhraseTopic(verbs), isFalse);
+      expect(studyOrderOf(verbs),
+          <WordItem>[for (final g in groupByLevel(verbs.words)) ...g.words]);
+    });
+
+    test('全部的學習順序：每個字剛好一次，片語主題在最前面，其餘等級不倒退', () {
+      final order = globalStudyOrder(Catalog.topics);
+      expect(order.length, Catalog.words.length);
+      expect(order.map((w) => w.id).toSet().length, Catalog.words.length);
+      final greetings = Catalog.topicById('greetings')!;
+      expect(order.take(greetings.words.length), greetings.words);
+      var last = 0;
+      for (final word in order.skip(greetings.words.length)) {
+        final rank = wordLevelOf(word).index;
+        expect(rank, greaterThanOrEqualTo(last), reason: word.id);
+        last = rank;
+      }
+    });
+
+    test('片語主題的 id 都存在', () {
+      for (final id in phraseTopicIds) {
+        expect(Catalog.topicById(id), isNotNull, reason: id);
+      }
+    });
+  });
+
   group('主題分類', () {
     test('每個主題剛好出現一次，順序不變', () {
       final groups = groupTopics(Catalog.topics);

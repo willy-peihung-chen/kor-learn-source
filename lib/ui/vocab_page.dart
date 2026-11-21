@@ -167,7 +167,7 @@ class TopicWordsPage extends StatelessWidget {
     final state = AppScope.of(context);
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
-    final groups = groupByLevel(topic.words);
+    final groups = levelGroupsOf(topic);
 
     return Scaffold(
       appBar: AppBar(title: Text(topic.title)),

@@ -68,9 +68,11 @@ void main() {
     });
 
     test('係數不會低於下限、也不會高於上限', () {
+      // 每次間隔一天答錯（剛答錯過的不重複扣，所以要隔開）。
       var s = review(null, ReviewRating.unfamiliar);
-      for (var i = 0; i < 20; i++) {
-        s = review(s, ReviewRating.unfamiliar);
+      for (var i = 1; i <= 20; i++) {
+        s = review(s, ReviewRating.unfamiliar,
+            at: now.add(Duration(days: i)));
       }
       expect(s.ease, Srs.minEase);
 
@@ -79,6 +81,68 @@ void main() {
         t = review(t, ReviewRating.familiar);
       }
       expect(t.ease, Srs.maxEase);
+    });
+
+    test('剛答錯過（2 小時內），再評「熟悉」：最多排 1 天，係數不上升', () {
+      var s = review(null, ReviewRating.familiar);
+      s = review(s, ReviewRating.familiar);
+      s = review(s, ReviewRating.unfamiliar);
+      final easeAfterLapse = s.ease;
+      s = review(s, ReviewRating.familiar,
+          at: now.add(const Duration(minutes: 3)));
+      expect(s.intervalDays, 1);
+      expect(s.repetitions, 1);
+      expect(s.ease, easeAfterLapse);
+    });
+
+    test('剛答錯過，再評「普通」：1 天', () {
+      var s = review(null, ReviewRating.unfamiliar);
+      s = review(s, ReviewRating.normal,
+          at: now.add(const Duration(minutes: 3)));
+      expect(s.intervalDays, 1);
+    });
+
+    test('前一天答錯、今天評「熟悉」：照一般規則（3 天）', () {
+      var s = review(null, ReviewRating.unfamiliar);
+      s = review(s, ReviewRating.familiar,
+          at: now.add(const Duration(days: 1)));
+      expect(s.intervalDays, 3);
+    });
+
+    test('剛答錯又答錯（同一輪重做）：不重複扣係數、不重複算失誤', () {
+      var s = review(null, ReviewRating.normal);
+      s = review(s, ReviewRating.unfamiliar);
+      final ease = s.ease;
+      s = review(s, ReviewRating.unfamiliar,
+          at: now.add(const Duration(minutes: 5)));
+      s = review(s, ReviewRating.unfamiliar,
+          at: now.add(const Duration(minutes: 9)));
+      expect(s.lapses, 1);
+      expect(s.ease, ease);
+      expect(s.dueAt, now.add(const Duration(minutes: 9)).add(Srs.relearnDelay));
+    });
+
+    test('隔了一整晚又答錯：算新的一次失誤', () {
+      var s = review(null, ReviewRating.normal);
+      s = review(s, ReviewRating.unfamiliar);
+      s = review(s, ReviewRating.unfamiliar,
+          at: now.add(const Duration(hours: 10)));
+      expect(s.lapses, 2);
+    });
+
+    test('跨過午夜的重做也算「剛答錯過」', () {
+      final late = DateTime(2026, 10, 29, 23, 58);
+      var s = review(null, ReviewRating.unfamiliar, at: late);
+      s = review(s, ReviewRating.familiar,
+          at: late.add(const Duration(minutes: 4)));
+      expect(s.intervalDays, 1);
+    });
+
+    test('沒有答錯過的卡不受「剛答錯過」限制', () {
+      var s = review(null, ReviewRating.normal);
+      s = review(s, ReviewRating.familiar,
+          at: now.add(const Duration(minutes: 5)));
+      expect(s.intervalDays, 7);
     });
 
     test('間隔至少比前一次多一天', () {
@@ -177,6 +241,50 @@ void main() {
         <String>['a'],
       );
       expect(ReviewQueue.newIds(itemIds: ids, states: states).length, 5);
+    });
+  });
+
+  group('ReviewRound', () {
+    test('評「不熟悉」的卡排回本輪最後，評過「普通」或「熟悉」就不再出現', () {
+      final round = ReviewRound(<String>['a', 'b', 'c']);
+      round.rate(ReviewRating.unfamiliar); // a 排到最後
+      expect(round.queue, <String>['a', 'b', 'c', 'a']);
+      round.rate(ReviewRating.normal); // b
+      round.rate(ReviewRating.familiar); // c
+      expect(round.isFinished, isFalse);
+      expect(round.idAt(round.position), 'a');
+      expect(round.isRetry(round.position), isTrue);
+      round.rate(ReviewRating.unfamiliar); // a 又錯，再排一次
+      expect(round.queue, <String>['a', 'b', 'c', 'a', 'a']);
+      round.rate(ReviewRating.normal);
+      expect(round.isFinished, isTrue);
+      expect(round.ratedCount, 5);
+      expect(round.wordCount, 3);
+    });
+
+    test('沒有答錯時，張數不變，也沒有重做的卡', () {
+      final round = ReviewRound(<String>['a', 'b']);
+      round.rate(ReviewRating.normal);
+      round.rate(ReviewRating.familiar);
+      expect(round.isFinished, isTrue);
+      expect(round.length, 2);
+      expect(round.isRetry(0), isFalse);
+      expect(round.isRetry(1), isFalse);
+      expect(round.ratingAt(0), ReviewRating.normal);
+      expect(round.ratingAt(1), ReviewRating.familiar);
+    });
+
+    test('空的一輪直接結束；結束後再評會丟出錯誤', () {
+      final round = ReviewRound(<String>[]);
+      expect(round.isFinished, isTrue);
+      expect(() => round.rate(ReviewRating.normal), throwsStateError);
+    });
+
+    test('外部傳入的清單之後被修改，不影響這一輪', () {
+      final ids = <String>['a', 'b'];
+      final round = ReviewRound(ids);
+      ids.add('c');
+      expect(round.length, 2);
     });
   });
 }
