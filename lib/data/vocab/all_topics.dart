@@ -21,6 +21,7 @@ import 'topic_function_time.dart';
 import 'topic_greetings.dart';
 import 'topic_hobbies.dart';
 import 'topic_home.dart';
+import 'topic_language.dart';
 import 'topic_nature.dart';
 import 'topic_numbers.dart';
 import 'topic_people.dart';
@@ -60,6 +61,7 @@ const List<WordTopic> allWordTopics = <WordTopic>[
   topicPlaces,
   topicTransport,
   topicSchool,
+  topicLanguage,
   topicWork,
   topicNature,
   topicAnimals,
