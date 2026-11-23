@@ -207,12 +207,19 @@ void main() {
       final expected = globalStudyOrder(Catalog.topics).map((w) => w.id);
       expect(all, expected.toList());
       expect(all.length, Catalog.words.length);
-      // 問候語主題排最前面，接著第一個非問候語的字是 1 級。
+      // 片語型主題（問候語、禮貌與敬語）排最前面，接著第一個其他字是 1 級。
       final greetings = Catalog.topicById('greetings')!;
+      final polite = Catalog.topicById('polite')!;
       expect(all.take(greetings.words.length),
           greetings.words.map((w) => w.id));
-      expect(wordLevelOf(Catalog.wordById(all[greetings.words.length])!),
+      expect(
+          all.skip(greetings.words.length).take(polite.words.length),
+          polite.words.map((w) => w.id));
+      final phraseCount = greetings.words.length + polite.words.length;
+      expect(wordLevelOf(Catalog.wordById(all[phraseCount])!),
           WordLevel.level1);
+      // 「較少用」的字排在最後。
+      expect(wordLevelOf(Catalog.wordById(all.last)!), WordLevel.later);
 
       final topic = Catalog.topics.firstWhere((t) => t.id == 'verbs_move');
       final topicQueue = state.newWordIdsInOrder(topicId: topic.id);
@@ -231,8 +238,8 @@ void main() {
     test('主題複習的「下一張到期時間」只看這個主題', () async {
       final repo = await newRepository();
       final state = await AppState.load(repo, clock: () => now);
-      final topicA = Catalog.topics[1];
-      final topicB = Catalog.topics[2];
+      final topicA = Catalog.topicById('numbers')!;
+      final topicB = Catalog.topicById('time_day')!;
       // A 主題的字答錯：10 分鐘後到期；B 主題的字評普通：1 天後到期。
       state.rateWord(topicA.words.first.id, ReviewRating.unfamiliar);
       state.rateWord(topicB.words.first.id, ReviewRating.normal);
@@ -258,8 +265,8 @@ void main() {
     test('主題複習和全部複習扣同一份新單字額度', () async {
       final repo = await newRepository();
       final state = await AppState.load(repo, clock: () => now);
-      final numbers = Catalog.topics[1];
-      final timeDay = Catalog.topics[2];
+      final numbers = Catalog.topicById('numbers')!;
+      final timeDay = Catalog.topicById('time_day')!;
 
       final topicQueue = state.buildReviewQueue(topicId: numbers.id);
       expect(topicQueue.length, AppState.newWordsPerDay);
@@ -338,7 +345,7 @@ void main() {
       expect(queue.length, AppState.dueCardsPerRound);
       expect(queue.every((id) => !state.isNewWord(id)), isTrue);
       // 主題複習也一樣暫停新字。
-      final topic = Catalog.topics[1];
+      final topic = Catalog.topicById('numbers')!;
       expect(
         state.buildReviewQueue(topicId: topic.id)
             .every((id) => !state.isNewWord(id)),

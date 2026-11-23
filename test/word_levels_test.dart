@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hangul_app/data/catalog.dart';
 import 'package:hangul_app/data/content_models.dart';
+import 'package:hangul_app/data/late_words.dart';
 import 'package:hangul_app/data/topic_groups.dart';
 import 'package:hangul_app/data/word_level_data.dart';
 import 'package:hangul_app/data/word_levels.dart';
@@ -16,6 +17,40 @@ void main() {
         expect(hangul.contains(entry.key), isTrue, reason: entry.key);
         expect(<int>[1, 2].contains(entry.value), isTrue, reason: entry.key);
       }
+    });
+
+    test('「較少用」名單：每一個都是單字庫裡唯一的字，不在片語主題裡', () {
+      for (final hangul in lateWordHangul) {
+        final matches = Catalog.words.where((w) => w.hangul == hangul).toList();
+        expect(matches.length, 1, reason: '$hangul 必須剛好在單字庫出現一次');
+        expect(wordLevelOf(matches.first), WordLevel.later, reason: hangul);
+        final topic = Catalog.topics.firstWhere(
+            (t) => t.words.any((w) => w.hangul == hangul));
+        expect(isPhraseTopic(topic), isFalse, reason: hangul);
+      }
+      // 禮貌與敬語主題裡的字不能被往後排。
+      final polite = Catalog.topicById('polite')!;
+      for (final word in polite.words) {
+        expect(lateWordHangul.contains(word.hangul), isFalse,
+            reason: word.hangul);
+      }
+    });
+
+    test('「較少用」排在最後，不管詞表等級', () {
+      expect(wordLevelOf(_word('그녀')), WordLevel.later);
+      expect(wordLevelOf(_word('가다')), WordLevel.level1);
+      final groups = groupByLevel(<WordItem>[
+        _word('그녀'),
+        _word('안녕하세요'),
+        _word('가격'),
+        _word('가다'),
+      ]);
+      expect(groups.map((g) => g.level).toList(), <WordLevel>[
+        WordLevel.level1,
+        WordLevel.level2,
+        WordLevel.other,
+        WordLevel.later,
+      ]);
     });
 
     test('已知的字落在正確的等級', () {
@@ -80,9 +115,13 @@ void main() {
       expect(order.length, Catalog.words.length);
       expect(order.map((w) => w.id).toSet().length, Catalog.words.length);
       final greetings = Catalog.topicById('greetings')!;
+      final polite = Catalog.topicById('polite')!;
       expect(order.take(greetings.words.length), greetings.words);
+      expect(order.skip(greetings.words.length).take(polite.words.length),
+          polite.words);
       var last = 0;
-      for (final word in order.skip(greetings.words.length)) {
+      final phraseCount = greetings.words.length + polite.words.length;
+      for (final word in order.skip(phraseCount)) {
         final rank = wordLevelOf(word).index;
         expect(rank, greaterThanOrEqualTo(last), reason: word.id);
         last = rank;

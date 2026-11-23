@@ -498,6 +498,9 @@ def lint_korean(text: str, where: str, report: Report, *, sentence: bool) -> Non
     # 固有數詞＋漢字數詞量詞（예：세 층、다섯 원）。분 也可能是「位」，只警告。
     for c in SINO_COUNTERS:
         for n in NATIVE_SHORT:
+            # 두 분이세요?（請問兩位？）的 분 是「位」，接固有數詞是對的。
+            if c == '분' and re.search(rf'{n} 분(이세요|이신|께서|께|들)', text):
+                continue
             if re.search(rf'(^|[^가-힣]){n} {c}(?=[^가-힣]|[이에은을도부까예요만]|$)', text):
                 (report.warn if c == '분' else report.error)(
                     where, f'「{n} {c}」：{c} 前面通常用漢字數詞（일、이、삼…）：{text}')

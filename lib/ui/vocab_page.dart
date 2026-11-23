@@ -84,7 +84,7 @@ class VocabHomePage extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           '點進主題可以瀏覽單字、聽發音；也可以只複習那一個主題。'
-          '主題裡的單字再依常用程度分成 1 級、2 級、其他。',
+          '主題裡的單字再依常用程度分成 1 級、2 級、其他、較少用。',
           style: theme.textTheme.bodySmall?.copyWith(color: muted),
         ),
         for (final group in groupTopics(Catalog.topics)) ...<Widget>[
@@ -212,7 +212,8 @@ class TopicWordsPage extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 '單字依國立國語院學習用詞表的等級分段，1 級最常用；'
-                '「其他」是詞表 3 級或詞表沒有列出的字。',
+                '「其他」是詞表 3 級或詞表沒有列出的字；'
+                '「較少用」是日常比較少聽到的字，先學前面的就好。',
                 style: theme.textTheme.bodySmall?.copyWith(color: muted),
               ),
             ],

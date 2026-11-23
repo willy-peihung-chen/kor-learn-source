@@ -26,6 +26,7 @@ import 'topic_nature.dart';
 import 'topic_numbers.dart';
 import 'topic_people.dart';
 import 'topic_places.dart';
+import 'topic_polite.dart';
 import 'topic_restaurant.dart';
 import 'topic_school.dart';
 import 'topic_shopping.dart';
@@ -46,6 +47,7 @@ import 'topic_work.dart';
 /// 所有單字主題（順序即為 App 內顯示順序）。
 const List<WordTopic> allWordTopics = <WordTopic>[
   topicGreetings,
+  topicPolite,
   topicNumbers,
   topicTimeDay,
   topicTimeCalendar,

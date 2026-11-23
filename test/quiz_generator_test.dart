@@ -425,6 +425,31 @@ void main() {
         <String>['미워하다', '밉다'],
         <String>['푹', '충분히'],
         <String>['슬픔', '슬퍼하다'],
+        <String>['저기요', '실례합니다'],
+        <String>['저기요', '실례지만'],
+        <String>['실례지만', '실례합니다'],
+        <String>['혹시', '아마'],
+        <String>['혹시', '어쩌면'],
+        <String>['잠깐만 기다려 주세요', '잠시만요'],
+        <String>['도와주셔서 감사합니다', '감사합니다'],
+        <String>['도와주셔서 감사합니다', '고맙습니다'],
+        <String>['안녕히 주무세요', '잘 자요'],
+        <String>['드시다', '먹다'],
+        <String>['드시다', '마시다'],
+        <String>['드시다', '잡수시다'],
+        <String>['편찮으시다', '아프다'],
+        <String>['돌아가시다', '죽다'],
+        <String>['여쭙다', '묻다'],
+        <String>['여쭙다', '물어보다'],
+        <String>['여쭙다', '질문하다'],
+        <String>['성함', '이름'],
+        <String>['연세', '나이'],
+        <String>['생신', '생일'],
+        <String>['진지', '밥'],
+        <String>['저희', '우리'],
+        <String>['어르신', '어른'],
+        <String>['어르신', '노인'],
+        <String>['반려동물', '애완동물'],
       ];
       for (final pair in pairs) {
         final a = Catalog.words.firstWhere((w) => w.hangul == pair[0]);
@@ -592,7 +617,7 @@ void main() {
     });
 
     test('主題單字測驗只出該主題的單字', () {
-      final topic = Catalog.topics[2];
+      final topic = Catalog.topicById('time_day')!;
       final questions = generator.topicQuiz(topic.id, count: 10);
       expect(questions.length, 10);
       final ids = topic.words.map((w) => w.id).toSet();

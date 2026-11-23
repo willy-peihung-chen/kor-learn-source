@@ -417,7 +417,8 @@ void main() {
     await _pumpApp(tester, size);
     await _openTab(tester, size, '單字');
 
-    final topic = Catalog.topics[1];
+    // 單字頁的第二個主題（禮貌與敬語），在小螢幕上不用捲動就看得到。
+    final topic = Catalog.topicById('polite')!;
     await tester.tap(find.text(topic.title));
     await tester.pumpAndSettle();
     await tester.tap(find.text('複習這個主題'));
