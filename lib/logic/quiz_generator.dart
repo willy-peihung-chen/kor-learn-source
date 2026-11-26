@@ -3,6 +3,7 @@ import 'dart:math';
 import '../data/catalog.dart';
 import '../data/content_models.dart';
 import '../data/quiz_types.dart';
+import 'meaning_tokens.dart';
 
 /// 依教材資料出題。題目內容全部來自 [Catalog]，沒有另外寫死的答案。
 class QuizGenerator {
@@ -400,18 +401,9 @@ class QuizGenerator {
 
   // ---- 單字題的干擾選項 ----
 
-  /// 中文意思的「核心詞」：去掉括號補充後，以「；」分開。
-  /// 兩個單字只要有任何一個核心詞相同，就視為意思重疊。
-  Set<String> _meaningTokens(String meaning) {
-    return _tokenCache.putIfAbsent(meaning, () {
-      final cleaned = meaning.replaceAll(RegExp('（[^）]*）'), '');
-      return cleaned
-          .split('；')
-          .map((s) => s.trim())
-          .where((s) => s.isNotEmpty)
-          .toSet();
-    });
-  }
+  /// 中文意思的「核心詞」（規則見 [meaningTokens]），加快取。
+  Set<String> _meaningTokens(String meaning) =>
+      _tokenCache.putIfAbsent(meaning, () => meaningTokens(meaning));
 
   /// 兩個單字能不能同時出現在同一題的選項裡。
   ///

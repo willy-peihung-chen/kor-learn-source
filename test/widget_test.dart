@@ -6,6 +6,7 @@ import 'package:hangul_app/data/catalog.dart';
 import 'package:hangul_app/data/lessons.dart';
 import 'package:hangul_app/data/word_levels.dart';
 import 'package:hangul_app/state/app_state.dart';
+import 'package:hangul_app/logic/meaning_tokens.dart';
 import 'package:hangul_app/logic/srs.dart';
 import 'package:hangul_app/storage/progress_data.dart';
 import 'package:hangul_app/storage/progress_repository.dart';
@@ -486,6 +487,94 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('教材說明'), findsOneWidget);
       expect(find.text('目前的教材量'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  ProgressData reverseReady(String wordId) {
+    final now = DateTime(2026, 10, 29, 12);
+    return ProgressData(reviews: <String, ReviewState>{
+      wordId: ReviewState(
+        itemId: wordId,
+        repetitions: 2,
+        intervalDays: TwoWayQueue.unlockIntervalDays,
+        ease: 2.3,
+        lapses: 0,
+        dueAt: now.add(const Duration(days: 2)),
+        lastReviewedAt: now.subtract(const Duration(days: 1)),
+      ),
+    });
+  }
+
+  testWidgets('中文→韓文卡：先看中文，翻開後才有韓文與朗讀；評分記在反向紀錄', (tester) async {
+    const size = Size(360, 740);
+    final word = Catalog.words.firstWhere(
+      (w) => w.note == null && w.hanja == null && sameMeaningWords(w).isEmpty,
+      orElse: () => throw StateError('找不到沒有 note、漢字、近義字的字，請換測試用字'),
+    );
+    final speech = FakeSpeechService();
+    final state = await _pumpApp(
+      tester,
+      size,
+      speech: speech,
+      data: reverseReady(word.id),
+    );
+    final rev = CardId.reverse(word.id);
+    expect(state.buildReviewQueue().first, rev);
+
+    await _openReview(tester, size);
+    expect(find.textContaining('中文→韓文'), findsOneWidget);
+    expect(find.text('韓文怎麼說？'), findsOneWidget);
+    expect(find.text(word.meaning), findsOneWidget);
+    expect(find.text(word.hangul), findsNothing);
+    expect(find.byTooltip('朗讀單字'), findsNothing);
+    expect(find.byTooltip('朗讀例句'), findsNothing);
+
+    await tester.tap(find.text('顯示韓文'));
+    await tester.pumpAndSettle();
+    expect(find.text(word.hangul), findsOneWidget);
+    expect(find.text(word.example), findsOneWidget);
+    await tester.tap(find.byTooltip('朗讀單字'));
+    await tester.pumpAndSettle();
+    expect(speech.spoken, <String>[word.hangul]);
+
+    final normal = find.text('普通');
+    await tester.scrollUntilVisible(
+      normal,
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(ReviewSessionPage),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    expect(find.textContaining('說不出來或說錯'), findsOneWidget);
+    await tester.tap(normal);
+    await tester.pumpAndSettle();
+
+    expect(state.isNewCard(rev), isFalse);
+    expect(state.reverseLearnedWordCount, 1);
+    expect(state.newWordsLearnedToday, 0);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final size in _sizes) {
+    final name = '${size.width.toInt()}x${size.height.toInt()}';
+    testWidgets('中文→韓文卡（有意思相近的字）在 $name 翻開後沒有版面例外', (tester) async {
+      final similar =
+          Catalog.words.where((w) => sameMeaningWords(w).isNotEmpty).toList();
+      final word = similar.firstWhere(
+        (w) => w.note != null,
+        orElse: () => similar.first,
+      );
+      await _pumpApp(tester, size, data: reverseReady(word.id));
+      await _openReview(tester, size);
+      expect(find.textContaining('意思和這個相近'), findsOneWidget);
+      await tester.tap(find.text('顯示韓文'));
+      await tester.pumpAndSettle();
+      expect(find.text(word.hangul), findsOneWidget);
+      expect(find.text('意思相近的字'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   }

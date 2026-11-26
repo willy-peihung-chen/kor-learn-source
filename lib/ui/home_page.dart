@@ -30,13 +30,17 @@ class HomePage extends StatelessWidget {
     final reviewParts = <String>[
       if (due > 0) '$due 張單字卡到期',
       if (fresh > 0) newWordStatus(state),
+      if (state.newReverseReadyCount > 0)
+        '${state.newReverseReadyCount} 張中文→韓文新卡',
       if (mistakes > 0) '$mistakes 題錯題',
     ];
 
     void startLearning() {
       if (nextLesson != null) {
         openLesson(context, nextLesson);
-      } else if (due > 0 || state.newWordsAvailable > 0) {
+      } else if (due > 0 ||
+          state.newWordsAvailable > 0 ||
+          state.newReverseReadyCount > 0) {
         onNavigate(2);
       } else {
         onNavigate(3);

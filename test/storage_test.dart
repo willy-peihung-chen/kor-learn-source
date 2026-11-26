@@ -508,4 +508,152 @@ void main() {
       expect(state.hardWordIds, <String>[w[1].id, w[0].id, w[3].id]);
     });
   });
+
+  group('中文→韓文卡', () {
+    ReviewState fwd(
+      String id, {
+      int interval = TwoWayQueue.unlockIntervalDays,
+      Duration dueIn = const Duration(days: 2),
+      int lapses = 0,
+    }) =>
+        ReviewState(
+          itemId: id,
+          repetitions: 2,
+          intervalDays: interval,
+          ease: 2.3,
+          lapses: lapses,
+          dueAt: now.add(dueIn),
+          lastReviewedAt: now.subtract(const Duration(days: 1)),
+          firstReviewedAt: now.subtract(const Duration(days: 5)),
+        );
+
+    test('紀錄往返後還在；沒有中文→韓文紀錄時不寫這一項；舊紀錄讀成空的', () {
+      final id = Catalog.words.first.id;
+      final data = ProgressData(
+        reverseReviews: <String, ReviewState>{
+          id: Srs.review(itemId: id, rating: ReviewRating.normal, now: now),
+        },
+      );
+      final back = ProgressData.fromJson(data.toJson());
+      expect(back.reverseReviews[id]!.intervalDays, 1);
+      expect(back.reviews, isEmpty);
+      expect(ProgressData().toJson().containsKey('reverseReviews'), isFalse);
+      expect(
+        ProgressData.fromJson(<String, dynamic>{'version': 1, 'reviews': <dynamic>[]})
+            .reverseReviews,
+        isEmpty,
+      );
+    });
+
+    test('間隔達到門檻的字開啟中文→韓文卡；評過後當天不再出現，也不算新單字', () async {
+      final w = Catalog.words.first.id;
+      final repo = await newRepository();
+      final state = AppState(
+        repository: repo,
+        data: ProgressData(reviews: <String, ReviewState>{w: fwd(w)}),
+        clock: () => now,
+      );
+      final rev = CardId.reverse(w);
+      final queue = state.buildReviewQueue();
+      expect(queue.first, rev);
+      expect(state.isNewCard(rev), isTrue);
+      expect(state.isNewWord(w), isFalse);
+      expect(state.dueCount, 0);
+
+      state.rateCard(rev, ReviewRating.normal);
+      expect(state.isNewCard(rev), isFalse);
+      expect(state.reverseLearnedWordCount, 1);
+      expect(state.newReverseLearnedToday, 1);
+      expect(state.newWordsLearnedToday, 0);
+      expect(state.learnedWordCount, 1);
+      expect(state.buildReviewQueue(), isNot(contains(rev)));
+      await state.flush();
+
+      // 重新啟動後中文→韓文紀錄還在。
+      final restarted = await AppState.load(await newRepository(), clock: () => now);
+      expect(restarted.isNewCard(rev), isFalse);
+      expect(restarted.reverseLearnedWordCount, 1);
+    });
+
+    test('今天練過中文→韓文，韓文→中文當天到期也留到明天', () async {
+      var clock = now;
+      final w = Catalog.words.first.id;
+      final state = AppState(
+        repository: MemoryProgressRepository(),
+        data: ProgressData(reviews: <String, ReviewState>{
+          w: fwd(w, dueIn: const Duration(hours: 1)),
+        }),
+        clock: () => clock,
+      );
+      final rev = CardId.reverse(w);
+      expect(state.buildReviewQueue(), contains(rev));
+      state.rateCard(rev, ReviewRating.familiar);
+
+      clock = now.add(const Duration(hours: 2)); // 韓文→中文已經到期
+      expect(state.dueCount, 0);
+      expect(state.buildReviewQueue(), isNot(contains(w)));
+      expect(state.nextDueAt, DateTime(2026, 10, 30));
+
+      clock = DateTime(2026, 10, 30, 8);
+      expect(state.dueCount, 1);
+      expect(state.buildReviewQueue().first, w);
+      await state.flush();
+    });
+
+    test('中文→韓文新卡每天最多 ${AppState.newReverseCardsPerDay} 張，和新單字分開算', () async {
+      final ids = Catalog.words.take(15).map((w) => w.id).toList();
+      final state = AppState(
+        repository: MemoryProgressRepository(),
+        data: ProgressData(reviews: {for (final id in ids) id: fwd(id)}),
+        clock: () => now,
+      );
+      final queue = state.buildReviewQueue();
+      final revs = queue.where(CardId.isReverse).toList();
+      expect(revs.length, AppState.newReverseCardsPerDay);
+      expect(queue.length - revs.length, AppState.newWordsPerDay);
+      for (final id in revs) {
+        state.rateCard(id, ReviewRating.normal);
+      }
+      expect(state.newReverseLeftToday, 0);
+      expect(state.newWordsLeftToday, AppState.newWordsPerDay);
+      expect(state.buildReviewQueue().where(CardId.isReverse), isEmpty);
+      expect(state.unlockableReverseCardIds().length, 15 - AppState.newReverseCardsPerDay);
+      await state.flush();
+    });
+
+    test('到期卡超過 100 張時，中文→韓文新卡也暫停', () {
+      expect(Catalog.words.length, greaterThan(101));
+      final due = Catalog.words.take(101).map((w) => w.id).toList();
+      final extra = Catalog.words[101].id;
+      final state = AppState(
+        repository: MemoryProgressRepository(),
+        data: ProgressData(reviews: <String, ReviewState>{
+          for (final id in due) id: fwd(id, dueIn: const Duration(hours: -1)),
+          extra: fwd(extra),
+        }),
+        clock: () => now,
+      );
+      expect(state.newWordsPaused, isTrue);
+      expect(state.newReverseAvailable, 0);
+      expect(state.unlockableReverseCardIds(), <String>[CardId.reverse(extra)]);
+      expect(state.buildReviewQueue().where(CardId.isReverse), isEmpty);
+    });
+
+    test('難記的字：兩個方向答錯次數合計', () {
+      final w = Catalog.words.first.id;
+      final state = AppState(
+        repository: MemoryProgressRepository(),
+        data: ProgressData(
+          reviews: <String, ReviewState>{w: fwd(w, lapses: 2)},
+          reverseReviews: <String, ReviewState>{
+            w: fwd(w, interval: 1, lapses: 2),
+          },
+        ),
+        clock: () => now,
+      );
+      expect(state.lapsesOf(w), 4);
+      expect(state.isHardWord(w), isTrue);
+      expect(state.hardWordIds, <String>[w]);
+    });
+  });
 }

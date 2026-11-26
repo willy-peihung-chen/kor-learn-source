@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/catalog.dart';
 import '../data/content_models.dart';
+import '../logic/meaning_tokens.dart';
 import '../logic/srs.dart';
 import '../state/app_state.dart';
 import '../util/format.dart';
@@ -31,7 +32,8 @@ void openReview(BuildContext context, {WordTopic? topic}) {
   );
 }
 
-/// 單字複習：先看韓文，點一下顯示意思與例句，再自評熟悉程度。
+/// 單字複習：先看題目（韓文，或中文→韓文卡的中文），點一下顯示答案與例句，
+/// 再自評熟悉程度。
 class ReviewSessionPage extends StatefulWidget {
   const ReviewSessionPage({super.key, this.topic});
 
@@ -62,7 +64,7 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
 
   void _rate(ReviewRating rating) {
     final state = AppScope.of(context);
-    state.rateWord(_round.idAt(_round.position), rating);
+    state.rateCard(_round.idAt(_round.position), rating);
     setState(() {
       _round.rate(rating);
       _revealed = false;
@@ -122,8 +124,10 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
     final browsing = _browse != null;
     final index = _browse ?? _round.position;
     final showAnswer = browsing || _revealed;
-    final word = Catalog.wordById(_round.idAt(index))!;
-    final isNew = state.isNewWord(word.id);
+    final cardId = _round.idAt(index);
+    final reverse = CardId.isReverse(cardId);
+    final word = Catalog.wordById(CardId.wordIdOf(cardId))!;
+    final isNew = state.isNewCard(cardId);
     final isRetry = _round.isRetry(index);
     final topic = Catalog.topicOfWord(word.id);
     final ratedAs = _round.ratingAt(index);
@@ -146,7 +150,8 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
       children: <Widget>[
         Text(
           '第 ${index + 1} / ${_round.length} 張・'
-          '${browsing ? '回頭查看（已評為「${ratedAs?.label ?? ''}」）' : (isRetry ? '再練一次' : (isNew ? '新單字' : '複習'))}'
+          '${browsing ? '回頭查看（已評為「${ratedAs?.label ?? ''}」）' : (isRetry ? '再練一次' : (isNew ? (reverse ? '新卡' : '新單字') : '複習'))}'
+          '${reverse ? '・中文→韓文' : ''}'
           '${isHard ? '・難記的字' : ''}'
           '${topic == null ? '' : '・${topic.title}'}',
           style: theme.textTheme.bodyMedium?.copyWith(color: muted),
@@ -156,63 +161,9 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Flexible(child: Text(word.hangul, style: hangulStyle(64))),
-                  const SizedBox(width: 4),
-                  SpeakButton(text: word.hangul, tooltip: '朗讀單字'),
-                ],
-              ),
-              if (showAnswer) ...<Widget>[
-                const SizedBox(height: 16),
-                Text(word.meaning, style: theme.textTheme.headlineSmall),
-                if (word.hanja != null) ...<Widget>[
-                  const SizedBox(height: 6),
-                  Text(
-                    '漢字詞：${word.hanja}',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: muted),
-                  ),
-                ],
-                if (isHard && note.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: 20),
-                  ...note,
-                ],
-                const SizedBox(height: 20),
-                Text(
-                  word.isPlainStyleExample ? '例句（半語，非敬語）' : '例句（敬語）',
-                  style: theme.textTheme.labelMedium?.copyWith(color: muted),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Flexible(child: Text(word.example, style: hangulStyle(20))),
-                    const SizedBox(width: 4),
-                    SpeakButton(
-                      text: word.example,
-                      tooltip: '朗讀例句',
-                      iconSize: 22,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '中文翻譯',
-                  style: theme.textTheme.labelMedium?.copyWith(color: muted),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  word.exampleMeaning,
-                  style: theme.textTheme.bodyLarge,
-                ),
-                if (!isHard && note.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: 20),
-                  ...note,
-                ],
-              ],
-            ],
+            children: reverse
+                ? _reverseCard(context, word, showAnswer, isHard, note)
+                : _forwardCard(context, word, showAnswer, isHard, note),
           ),
         ),
         const SizedBox(height: 16),
@@ -237,16 +188,20 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            '不熟悉：想不起來或想錯（這一輪稍後再出現；最後一張則留到下一輪）\n'
-            '普通：想了一下才想起來\n'
-            '熟悉：一看就知道',
+            reverse
+                ? '不熟悉：說不出來或說錯（這一輪稍後再出現；最後一張則留到下一輪）\n'
+                    '普通：想了一下才說出來\n'
+                    '熟悉：馬上說得出來'
+                : '不熟悉：想不起來或想錯（這一輪稍後再出現；最後一張則留到下一輪）\n'
+                    '普通：想了一下才想起來\n'
+                    '熟悉：一看就知道',
             style: theme.textTheme.bodySmall?.copyWith(color: muted, height: 1.5),
           ),
         ]
         else
           FilledButton(
             onPressed: () => setState(() => _revealed = true),
-            child: const Text('顯示意思'),
+            child: Text(reverse ? '顯示韓文' : '顯示意思'),
           ),
         if (_round.position > 0 || browsing) ...<Widget>[
           const SizedBox(height: 12),
@@ -278,6 +233,173 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
     );
   }
 
+  /// 韓文→中文卡：先看韓文，翻開後看意思、例句與用法說明。
+  List<Widget> _forwardCard(
+    BuildContext context,
+    WordItem word,
+    bool showAnswer,
+    bool isHard,
+    List<Widget> note,
+  ) {
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    return <Widget>[
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Flexible(child: Text(word.hangul, style: hangulStyle(64))),
+          const SizedBox(width: 4),
+          SpeakButton(text: word.hangul, tooltip: '朗讀單字'),
+        ],
+      ),
+      if (showAnswer) ...<Widget>[
+        const SizedBox(height: 16),
+        Text(word.meaning, style: theme.textTheme.headlineSmall),
+        ..._hanja(context, word),
+        if (isHard && note.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 20),
+          ...note,
+        ],
+        ..._example(context, word),
+        const SizedBox(height: 8),
+        Text(
+          '中文翻譯',
+          style: theme.textTheme.labelMedium?.copyWith(color: muted),
+        ),
+        const SizedBox(height: 2),
+        Text(word.exampleMeaning, style: theme.textTheme.bodyLarge),
+        if (!isHard && note.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 20),
+          ...note,
+        ],
+      ],
+    ];
+  }
+
+  /// 中文→韓文卡：先看中文意思和例句的中文翻譯（幫忙分辨意思相近的字），
+  /// 想出韓文後翻開；翻開前沒有朗讀按鈕，避免直接聽到答案。
+  List<Widget> _reverseCard(
+    BuildContext context,
+    WordItem word,
+    bool showAnswer,
+    bool isHard,
+    List<Widget> note,
+  ) {
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    final similar = sameMeaningWords(word);
+    return <Widget>[
+      Text(
+        '韓文怎麼說？',
+        style: theme.textTheme.labelMedium?.copyWith(color: muted),
+      ),
+      const SizedBox(height: 6),
+      Text(
+        word.meaning,
+        style: theme.textTheme.headlineMedium,
+        textAlign: TextAlign.center,
+      ),
+      const SizedBox(height: 12),
+      Text(
+        '例句：${word.exampleMeaning}',
+        style: theme.textTheme.bodyMedium?.copyWith(color: muted, height: 1.5),
+        textAlign: TextAlign.center,
+      ),
+      if (similar.isNotEmpty) ...<Widget>[
+        const SizedBox(height: 8),
+        Text(
+          '還有 ${similar.length} 個單字的意思和這個相近，請照例句想這一個。',
+          style: theme.textTheme.bodySmall?.copyWith(color: muted),
+          textAlign: TextAlign.center,
+        ),
+      ],
+      if (showAnswer) ...<Widget>[
+        const SizedBox(height: 20),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Flexible(child: Text(word.hangul, style: hangulStyle(56))),
+            const SizedBox(width: 4),
+            SpeakButton(text: word.hangul, tooltip: '朗讀單字'),
+          ],
+        ),
+        ..._hanja(context, word),
+        if (isHard && note.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 20),
+          ...note,
+        ],
+        ..._example(context, word),
+        if (similar.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 20),
+          Text(
+            '意思相近的字',
+            style: theme.textTheme.labelMedium?.copyWith(color: muted),
+          ),
+          const SizedBox(height: 2),
+          for (final other in similar)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Flexible(
+                  child: Text(
+                    '${other.hangul}（${other.meaning}）',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                SpeakButton(
+                  text: other.hangul,
+                  tooltip: '朗讀${other.hangul}',
+                  iconSize: 20,
+                ),
+              ],
+            ),
+        ],
+        if (!isHard && note.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 20),
+          ...note,
+        ],
+      ],
+    ];
+  }
+
+  List<Widget> _hanja(BuildContext context, WordItem word) {
+    if (word.hanja == null) {
+      return const <Widget>[];
+    }
+    final theme = Theme.of(context);
+    return <Widget>[
+      const SizedBox(height: 6),
+      Text(
+        '漢字詞：${word.hanja}',
+        style: theme.textTheme.bodyMedium
+            ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+      ),
+    ];
+  }
+
+  /// 韓文例句與朗讀按鈕（標出敬語或半語）。
+  List<Widget> _example(BuildContext context, WordItem word) {
+    final theme = Theme.of(context);
+    return <Widget>[
+      const SizedBox(height: 20),
+      Text(
+        word.isPlainStyleExample ? '例句（半語，非敬語）' : '例句（敬語）',
+        style: theme.textTheme.labelMedium
+            ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+      ),
+      const SizedBox(height: 4),
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Flexible(child: Text(word.example, style: hangulStyle(20))),
+          const SizedBox(width: 4),
+          SpeakButton(text: word.example, tooltip: '朗讀例句', iconSize: 22),
+        ],
+      ),
+    ];
+  }
+
   /// 一輪結束（或一開始就沒有卡）時的畫面：說明為什麼停、接下來可以做什麼。
   Widget _finished(BuildContext context) {
     final state = AppScope.of(context);
@@ -291,19 +413,27 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
     final unseenLeft = state.newWordIdsInOrder(topicId: topicId).length;
     final canAddExtra = state.canAddExtraNewWordsOf(topicId);
 
+    final unlockLeft = state.unlockableReverseCardIds(topicId: topicId).length;
+
     final notes = <String>[
       for (final id in _round.deferredIds)
-        '「${Catalog.wordById(id)?.hangul ?? id}」是這一輪的最後一張，答錯後先不馬上重出；'
+        '「${Catalog.wordById(CardId.wordIdOf(id))?.hangul ?? id}」'
+            '${CardId.isReverse(id) ? '（中文→韓文）' : ''}是這一輪的最後一張，答錯後先不馬上重出；'
             '${Srs.relearnDelay.inMinutes} 分鐘後到期，到時在單字頁按「開始複習」就會出現。',
       if (dueLeft > 0)
         '還有 $dueLeft 張到期，按「再來一輪」繼續'
             '（每輪最多 ${AppState.dueCardsPerRound} 張）。',
-      if (unseenLeft > 0 && state.newWordsPaused)
+      if ((unseenLeft > 0 || unlockLeft > 0) && state.newWordsPaused)
         '全部單字到期的卡有 ${state.dueCount} 張（超過 ${AppState.backlogPauseThreshold} 張），'
             '先暫停新單字，複習做完一些再學新字。'
       else if (unseenLeft > 0 && state.newWordsLeftToday == 0)
         '今天的 ${state.newWordsQuotaToday} 個新單字已經學完'
             '（每天 ${AppState.newWordsPerDay} 個，單字頁和各主題共用）。',
+      if (unlockLeft > 0 &&
+          !state.newWordsPaused &&
+          state.newReverseLeftToday == 0)
+        '今天的 ${AppState.newReverseCardsPerDay} 張中文→韓文新卡已經練完，'
+            '還有 $unlockLeft 個字明天之後再開始練。',
     ];
 
     return PageBody(

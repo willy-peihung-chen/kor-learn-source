@@ -89,6 +89,7 @@ class ProgressData {
     Set<String>? completedLessons,
     Set<String>? learnedItems,
     Map<String, ReviewState>? reviews,
+    Map<String, ReviewState>? reverseReviews,
     List<QuizAttempt>? attempts,
     List<ActivityEntry>? activity,
     this.extraNewWordsDate,
@@ -96,6 +97,7 @@ class ProgressData {
   })  : completedLessons = completedLessons ?? <String>{},
         learnedItems = learnedItems ?? <String>{},
         reviews = reviews ?? <String, ReviewState>{},
+        reverseReviews = reverseReviews ?? <String, ReviewState>{},
         attempts = attempts ?? <QuizAttempt>[],
         activity = activity ?? <ActivityEntry>[];
 
@@ -105,7 +107,11 @@ class ProgressData {
 
   final Set<String> completedLessons;
   final Set<String> learnedItems;
+  /// 韓文→中文（原本的方向）的複習狀態，以單字 id 為鍵。
   final Map<String, ReviewState> reviews;
+
+  /// 中文→韓文的複習狀態，以單字 id 為鍵（2026-11-26 新增；舊紀錄沒有這項，讀回來是空的）。
+  final Map<String, ReviewState> reverseReviews;
   final List<QuizAttempt> attempts;
   final List<ActivityEntry> activity;
 
@@ -128,6 +134,9 @@ class ProgressData {
         'completedLessons': completedLessons.toList()..sort(),
         'learnedItems': learnedItems.toList()..sort(),
         'reviews': reviews.values.map((r) => r.toJson()).toList(),
+        if (reverseReviews.isNotEmpty)
+          'reverseReviews':
+              reverseReviews.values.map((r) => r.toJson()).toList(),
         'attempts': attempts.map((a) => a.toJson()).toList(),
         'activity': activity.map((a) => a.toJson()).toList(),
         if (extraNewWordsDate != null) ...<String, dynamic>{
@@ -151,18 +160,22 @@ class ProgressData {
       return raw.whereType<String>().toSet();
     }
 
-    final reviews = <String, ReviewState>{};
-    for (final map in maps(json['reviews'])) {
-      final state = ReviewState.fromJson(map);
-      if (state != null) {
-        reviews[state.itemId] = state;
+    Map<String, ReviewState> states(Object? raw) {
+      final result = <String, ReviewState>{};
+      for (final map in maps(raw)) {
+        final state = ReviewState.fromJson(map);
+        if (state != null) {
+          result[state.itemId] = state;
+        }
       }
+      return result;
     }
 
     return ProgressData(
       completedLessons: strings(json['completedLessons']),
       learnedItems: strings(json['learnedItems']),
-      reviews: reviews,
+      reviews: states(json['reviews']),
+      reverseReviews: states(json['reverseReviews']),
       attempts: maps(json['attempts'])
           .map(QuizAttempt.fromJson)
           .whereType<QuizAttempt>()

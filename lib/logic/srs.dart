@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import '../util/format.dart';
 import '../util/time_codec.dart';
 
 enum ReviewRating {
@@ -235,6 +236,210 @@ class ReviewQueue {
       ...(dueLimit == null ? due : due.take(dueLimit)),
       ...newIds(itemIds: itemIds, states: states).take(math.max(0, newLimit)),
     ];
+  }
+}
+
+/// 複習卡的 id。韓文→中文（原本的方向）就是單字 id；
+/// 中文→韓文在前面加 [reversePrefix]，例如 `rev:word:사과`。
+class CardId {
+  CardId._();
+
+  static const String reversePrefix = 'rev:';
+
+  static String reverse(String wordId) => '$reversePrefix$wordId';
+
+  static bool isReverse(String cardId) => cardId.startsWith(reversePrefix);
+
+  static String wordIdOf(String cardId) =>
+      isReverse(cardId) ? cardId.substring(reversePrefix.length) : cardId;
+}
+
+/// 韓文→中文與中文→韓文兩個方向一起排程（純邏輯，不依賴 UI 或儲存）。
+///
+/// 兩個方向各有一份 [ReviewState]（[forward]、[reverse]，都以單字 id 為鍵），
+/// 用同一套 [Srs] 規則各自計算間隔。
+///
+/// - 中文→韓文卡在韓文→中文的間隔達到 [unlockIntervalDays] 天以後才開啟
+///   （先認得，再練說出來）。剛開啟的卡算「新卡」，數量由呼叫端限制。
+/// - 同一個字一天只練一個方向：今天評過其中一個方向，另一個方向留到明天
+///   （剛看過答案再考另一個方向，沒有練習效果）。
+///   兩個方向同時到期時，先出韓文→中文。
+/// - 同一個方向答錯後的重做（10 分鐘後到期）不受影響；跨過午夜也一樣，
+///   重做完成前另一個方向不出。
+class TwoWayQueue {
+  TwoWayQueue._();
+
+  static const int unlockIntervalDays = 3;
+
+  static bool _reviewedToday(ReviewState? state, DateTime now) =>
+      state != null && isSameDay(state.lastReviewedAt, now);
+
+  /// 這個方向會擋住另一個方向：今天評過，或剛答錯、重做還沒完成
+  /// （[Srs.recentWindow] 內；跨過午夜的重做也照樣先做完）。
+  static bool _blocks(ReviewState? state, DateTime now) =>
+      state != null &&
+      (_reviewedToday(state, now) ||
+          (state.repetitions == 0 &&
+              state.lapses > 0 &&
+              now.difference(state.lastReviewedAt) < Srs.recentWindow));
+
+  /// 隔天 0 點（本機時間）。
+  static DateTime _startOfTomorrow(DateTime now) =>
+      DateTime(now.year, now.month, now.day + 1);
+
+  /// 韓文→中文卡現在可以出：到期，而且今天沒練過中文→韓文。
+  static bool forwardDue(
+    String wordId,
+    Map<String, ReviewState> forward,
+    Map<String, ReviewState> reverse,
+    DateTime now,
+  ) {
+    final f = forward[wordId];
+    return f != null && f.isDue(now) && !_blocks(reverse[wordId], now);
+  }
+
+  /// 中文→韓文卡現在可以出：到期、今天沒練過韓文→中文，
+  /// 而且韓文→中文現在沒有要出（同時到期時讓韓文→中文先）。
+  static bool reverseDue(
+    String wordId,
+    Map<String, ReviewState> forward,
+    Map<String, ReviewState> reverse,
+    DateTime now,
+  ) {
+    final r = reverse[wordId];
+    return r != null &&
+        r.isDue(now) &&
+        !_blocks(forward[wordId], now) &&
+        !forwardDue(wordId, forward, reverse, now);
+  }
+
+  /// 中文→韓文卡可以開啟（還沒練過）：韓文→中文的間隔達到 [unlockIntervalDays] 天、
+  /// 現在沒有到期、今天也沒練過。
+  static bool reverseUnlockable(
+    String wordId,
+    Map<String, ReviewState> forward,
+    Map<String, ReviewState> reverse,
+    DateTime now,
+  ) {
+    final f = forward[wordId];
+    return !reverse.containsKey(wordId) &&
+        f != null &&
+        f.intervalDays >= unlockIntervalDays &&
+        !f.isDue(now) &&
+        !_reviewedToday(f, now);
+  }
+
+  /// 現在可以出的到期卡（兩個方向合在一起），最早到期的先；
+  /// 同時到期時依 [wordIds] 的順序，同一個字韓文→中文在前。
+  static List<String> dueCardIds({
+    required Iterable<String> wordIds,
+    required Map<String, ReviewState> forward,
+    required Map<String, ReviewState> reverse,
+    required DateTime now,
+  }) {
+    final cards = <({String id, DateTime dueAt, int order})>[];
+    var order = 0;
+    for (final wordId in wordIds) {
+      if (forwardDue(wordId, forward, reverse, now)) {
+        cards.add((id: wordId, dueAt: forward[wordId]!.dueAt, order: order));
+      }
+      order++;
+      if (reverseDue(wordId, forward, reverse, now)) {
+        cards.add((
+          id: CardId.reverse(wordId),
+          dueAt: reverse[wordId]!.dueAt,
+          order: order,
+        ));
+      }
+      order++;
+    }
+    cards.sort((a, b) {
+      final byDue = a.dueAt.compareTo(b.dueAt);
+      return byDue != 0 ? byDue : a.order.compareTo(b.order);
+    });
+    return cards.map((c) => c.id).toList();
+  }
+
+  /// 可以開啟的中文→韓文卡（卡片 id），依 [wordIds] 的順序。
+  static List<String> newReverseCardIds({
+    required Iterable<String> wordIds,
+    required Map<String, ReviewState> forward,
+    required Map<String, ReviewState> reverse,
+    required DateTime now,
+  }) =>
+      <String>[
+        for (final wordId in wordIds)
+          if (reverseUnlockable(wordId, forward, reverse, now))
+            CardId.reverse(wordId),
+      ];
+
+  /// 組一輪：到期卡（最多 [dueLimit] 張；null 不限）→ 新開啟的中文→韓文卡
+  /// （最多 [newReverseLimit] 張）→ 新單字（最多 [newWordLimit] 個）。
+  static List<String> build({
+    required List<String> wordIds,
+    required Map<String, ReviewState> forward,
+    required Map<String, ReviewState> reverse,
+    required DateTime now,
+    required int newWordLimit,
+    required int newReverseLimit,
+    int? dueLimit,
+  }) {
+    final due = dueCardIds(
+      wordIds: wordIds,
+      forward: forward,
+      reverse: reverse,
+      now: now,
+    );
+    return <String>[
+      ...(dueLimit == null ? due : due.take(dueLimit)),
+      ...newReverseCardIds(
+        wordIds: wordIds,
+        forward: forward,
+        reverse: reverse,
+        now: now,
+      ).take(math.max(0, newReverseLimit)),
+      ...ReviewQueue.newIds(itemIds: wordIds, states: forward)
+          .take(math.max(0, newWordLimit)),
+    ];
+  }
+
+  /// 還沒到、之後才可以出的卡中，最早的時間；沒有時為 null。
+  /// 被「同一個字一天只練一個方向」擋住的卡，算成明天 0 點。
+  /// 不包含還沒開啟的中文→韓文卡（那是新卡，不是排定的複習）。
+  static DateTime? nextAvailableAt({
+    required Iterable<String> wordIds,
+    required Map<String, ReviewState> forward,
+    required Map<String, ReviewState> reverse,
+    required DateTime now,
+  }) {
+    final tomorrow = _startOfTomorrow(now);
+    DateTime? earliest;
+    void consider(DateTime dueAt, {required bool blockedToday}) {
+      final at =
+          blockedToday && dueAt.isBefore(tomorrow) ? tomorrow : dueAt;
+      if (!at.isAfter(now)) {
+        return; // 現在就可以出，不算「之後」。
+      }
+      if (earliest == null || at.isBefore(earliest!)) {
+        earliest = at;
+      }
+    }
+
+    for (final wordId in wordIds) {
+      final f = forward[wordId];
+      final r = reverse[wordId];
+      if (f != null) {
+        consider(f.dueAt, blockedToday: _blocks(r, now));
+      }
+      if (r != null) {
+        consider(
+          r.dueAt,
+          blockedToday: _blocks(f, now) ||
+              forwardDue(wordId, forward, reverse, now),
+        );
+      }
+    }
+    return earliest;
   }
 }
 

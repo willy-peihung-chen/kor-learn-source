@@ -25,11 +25,13 @@ class VocabHomePage extends StatelessWidget {
     final due = state.dueCount;
     final fresh = state.newWordCount;
     final hardCount = state.hardWordIds.length;
-    final reviewDetail = (due == 0 && fresh == 0)
+    final reverseReady = state.newReverseReadyCount;
+    final reviewDetail = (due == 0 && fresh == 0 && reverseReady == 0)
         ? '目前沒有需要複習的單字。'
         : <String>[
             if (due > 0) '$due 張到期（每輪最多 ${AppState.dueCardsPerRound} 張）',
             if (fresh > 0) newWordStatus(state),
+            if (reverseReady > 0) '$reverseReady 張中文→韓文新卡',
           ].join('、');
 
     return PageBody(

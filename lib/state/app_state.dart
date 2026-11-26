@@ -59,8 +59,12 @@ class AppState extends ChangeNotifier {
   /// 到期卡超過這個數字時，暫停加新單字，先把積壓的複習做完。
   static const int backlogPauseThreshold = 100;
 
-  /// 答「不熟悉」累計達到這個次數，標成「難記的字」。
+  /// 答「不熟悉」累計達到這個次數，標成「難記的字」（兩個方向合計）。
   static const int hardWordLapses = 4;
+
+  /// 每天新開啟的中文→韓文卡張數（第一次評分的那天算一張）。
+  /// 不受「今天再多學」影響；到期卡積壓時和新單字一起暫停。
+  static const int newReverseCardsPerDay = 10;
 
   Future<void> _saveChain = Future<void>.value();
 
@@ -141,13 +145,16 @@ class AppState extends ChangeNotifier {
   List<String> newWordIdsInOrder({String? topicId}) =>
       ReviewQueue.newIds(itemIds: _studyIdsOf(topicId), states: _data.reviews);
 
-  /// 組一輪複習：到期卡（最早到期的先，最多 [dueCardsPerRound] 張），
-  /// 再補今天還能學的新單字（[newWordsAvailable]）。
-  List<String> buildReviewQueue({String? topicId}) => ReviewQueue.build(
-        itemIds: _studyIdsOf(topicId),
-        states: _data.reviews,
+  /// 組一輪複習（回傳卡片 id，見 [CardId]）：到期卡（兩個方向合計，
+  /// 最早到期的先，最多 [dueCardsPerRound] 張）→ 今天還能開啟的中文→韓文卡
+  /// （[newReverseAvailable]）→ 今天還能學的新單字（[newWordsAvailable]）。
+  List<String> buildReviewQueue({String? topicId}) => TwoWayQueue.build(
+        wordIds: _studyIdsOf(topicId),
+        forward: _data.reviews,
+        reverse: _data.reverseReviews,
         now: now,
-        newLimit: newWordsAvailable,
+        newWordLimit: newWordsAvailable,
+        newReverseLimit: newReverseAvailable,
         dueLimit: dueCardsPerRound,
       );
 
@@ -179,6 +186,46 @@ class AppState extends ChangeNotifier {
   /// 現在一輪可以加入的新單字數（額度用完或暫停時為 0）。
   int get newWordsAvailable => newWordsPaused ? 0 : newWordsLeftToday;
 
+  // ---- 中文→韓文卡 ----
+
+  /// 今天第一次評分的中文→韓文卡張數。
+  int get newReverseLearnedToday {
+    final today = now;
+    return _data.reverseReviews.values
+        .where((r) =>
+            r.firstReviewedAt != null && isSameDay(r.firstReviewedAt!, today))
+        .length;
+  }
+
+  /// 今天的中文→韓文新卡還剩幾張（不管有沒有暫停）。
+  int get newReverseLeftToday {
+    final left = newReverseCardsPerDay - newReverseLearnedToday;
+    return left < 0 ? 0 : left;
+  }
+
+  /// 現在一輪可以加入的中文→韓文新卡張數（額度用完或暫停時為 0）。
+  int get newReverseAvailable => newWordsPaused ? 0 : newReverseLeftToday;
+
+  /// 指定主題（null 代表全部）現在可以開啟、還沒練過的中文→韓文卡。
+  List<String> unlockableReverseCardIds({String? topicId}) =>
+      TwoWayQueue.newReverseCardIds(
+        wordIds: _studyIdsOf(topicId),
+        forward: _data.reviews,
+        reverse: _data.reverseReviews,
+        now: now,
+      );
+
+  /// 現在一輪實際能加入的中文→韓文新卡張數（全部主題）。
+  int get newReverseReadyCount {
+    final ready = unlockableReverseCardIds().length;
+    return ready < newReverseAvailable ? ready : newReverseAvailable;
+  }
+
+  /// 練過中文→韓文的單字數。
+  int get reverseLearnedWordCount => _wordIds
+      .where((id) => _data.reverseReviews.containsKey(id))
+      .length;
+
   /// 可以按「今天再多學」：額度用完、沒有暫停、而且還有沒學過的字。
   bool get canAddExtraNewWords => canAddExtraNewWordsOf(null);
 
@@ -200,10 +247,12 @@ class AppState extends ChangeNotifier {
 
   int get dueCount => dueCountOf(null);
 
-  /// 指定主題（null 代表全部）到期的單字卡數。
-  int dueCountOf(String? topicId) => ReviewQueue.dueIds(
-        itemIds: _wordIdsOf(topicId),
-        states: _data.reviews,
+  /// 指定主題（null 代表全部）現在可以複習的到期卡數（兩個方向合計；
+  /// 被「同一個字一天只練一個方向」擋住的不算）。
+  int dueCountOf(String? topicId) => TwoWayQueue.dueCardIds(
+        wordIds: _wordIdsOf(topicId),
+        forward: _data.reviews,
+        reverse: _data.reverseReviews,
         now: now,
       ).length;
 
@@ -212,18 +261,25 @@ class AppState extends ChangeNotifier {
 
   bool isNewWord(String wordId) => !_data.reviews.containsKey(wordId);
 
+  /// 這張卡（[CardId]）這個方向還沒評過。
+  bool isNewCard(String cardId) => CardId.isReverse(cardId)
+      ? !_data.reverseReviews.containsKey(CardId.wordIdOf(cardId))
+      : isNewWord(cardId);
+
   /// 已經評估過（複習過）的單字 id。
   List<String> get learnedWordIds =>
       _wordIds.where((id) => _data.reviews.containsKey(id)).toList();
 
   int get learnedWordCount => learnedWordIds.length;
 
-  /// 答「不熟悉」累計 [hardWordLapses] 次以上的字。
-  bool isHardWord(String wordId) =>
-      (_data.reviews[wordId]?.lapses ?? 0) >= hardWordLapses;
+  /// 答「不熟悉」累計 [hardWordLapses] 次以上的字（兩個方向合計）。
+  bool isHardWord(String wordId) => lapsesOf(wordId) >= hardWordLapses;
 
-  /// 某個字答「不熟悉」的累計次數（2 小時內重複答錯只算一次，見 [Srs.recentWindow]）。
-  int lapsesOf(String wordId) => _data.reviews[wordId]?.lapses ?? 0;
+  /// 某個字答「不熟悉」的累計次數，兩個方向合計
+  /// （同一個方向 2 小時內重複答錯只算一次，見 [Srs.recentWindow]）。
+  int lapsesOf(String wordId) =>
+      (_data.reviews[wordId]?.lapses ?? 0) +
+      (_data.reverseReviews[wordId]?.lapses ?? 0);
 
   /// 難記的字：依答錯次數由多到少，同次數照教材順序。
   List<String> get hardWordIds {
@@ -256,32 +312,33 @@ class AppState extends ChangeNotifier {
   DateTime? get nextDueAt => nextDueAtOf(null);
 
   /// 指定主題（null 代表全部）尚未到期的卡片中，最早的下次複習時間。
-  DateTime? nextDueAtOf(String? topicId) {
-    final current = now;
-    DateTime? earliest;
-    for (final id in _wordIdsOf(topicId)) {
-      final state = _data.reviews[id];
-      if (state == null || state.isDue(current)) {
-        continue;
-      }
-      if (earliest == null || state.dueAt.isBefore(earliest)) {
-        earliest = state.dueAt;
-      }
-    }
-    return earliest;
-  }
+  /// 兩個方向都算；被「同一個字一天只練一個方向」擋住的卡算成明天 0 點。
+  DateTime? nextDueAtOf(String? topicId) => TwoWayQueue.nextAvailableAt(
+        wordIds: _wordIdsOf(topicId),
+        forward: _data.reviews,
+        reverse: _data.reverseReviews,
+        now: now,
+      );
 
-  void rateWord(String wordId, ReviewRating rating) {
+  /// 評韓文→中文卡。
+  void rateWord(String wordId, ReviewRating rating) =>
+      rateCard(wordId, rating);
+
+  /// 評一張卡（[CardId]：韓文→中文或中文→韓文）。
+  void rateCard(String cardId, ReviewRating rating) {
     final current = now;
-    final previous = _data.reviews[wordId];
-    _data.reviews[wordId] = Srs.review(
+    final wordId = CardId.wordIdOf(cardId);
+    final states =
+        CardId.isReverse(cardId) ? _data.reverseReviews : _data.reviews;
+    final previous = states[wordId];
+    states[wordId] = Srs.review(
       previous: previous,
       itemId: wordId,
       rating: rating,
       now: current,
     );
 
-    // 今天已經評過這個字（例如答錯後重做）：不再多算一張。
+    // 今天已經評過這張卡（例如答錯後重做）：不再多算一張。
     final countedToday =
         previous != null && isSameDay(previous.lastReviewedAt, current);
 

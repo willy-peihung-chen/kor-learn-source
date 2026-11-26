@@ -372,4 +372,227 @@ void main() {
       expect(round.length, 2);
     });
   });
+
+  group('CardId', () {
+    test('韓文→中文用單字 id；中文→韓文加 rev: 前綴，能還原單字 id', () {
+      const id = 'word:배#船';
+      expect(CardId.isReverse(id), isFalse);
+      expect(CardId.wordIdOf(id), id);
+      final rev = CardId.reverse(id);
+      expect(rev, 'rev:word:배#船');
+      expect(CardId.isReverse(rev), isTrue);
+      expect(CardId.wordIdOf(rev), id);
+    });
+  });
+
+  group('TwoWayQueue', () {
+    ReviewState st(
+      String id, {
+      required int interval,
+      required DateTime dueAt,
+      required DateTime last,
+      int repetitions = 2,
+      int lapses = 0,
+    }) =>
+        ReviewState(
+          itemId: id,
+          repetitions: repetitions,
+          intervalDays: interval,
+          ease: 2.3,
+          lapses: lapses,
+          dueAt: dueAt,
+          lastReviewedAt: last,
+        );
+    final yesterday = now.subtract(const Duration(days: 1));
+    final later = now.add(const Duration(days: 2));
+    final past = now.subtract(const Duration(hours: 1));
+
+    test('韓文→中文間隔不到 ${TwoWayQueue.unlockIntervalDays} 天不開啟中文→韓文卡', () {
+      final forward = <String, ReviewState>{
+        'a': st('a', interval: 1, dueAt: later, last: yesterday),
+        'b': st('b', interval: TwoWayQueue.unlockIntervalDays,
+            dueAt: later, last: yesterday),
+      };
+      expect(
+        TwoWayQueue.newReverseCardIds(
+          wordIds: <String>['a', 'b', 'c'],
+          forward: forward,
+          reverse: <String, ReviewState>{},
+          now: now,
+        ),
+        <String>[CardId.reverse('b')],
+      );
+    });
+
+    test('韓文→中文今天剛評過或已到期時，不開啟中文→韓文卡', () {
+      final forward = <String, ReviewState>{
+        'a': st('a', interval: 3, dueAt: later, last: now),
+        'b': st('b', interval: 3, dueAt: past, last: yesterday),
+      };
+      expect(
+        TwoWayQueue.newReverseCardIds(
+          wordIds: <String>['a', 'b'],
+          forward: forward,
+          reverse: <String, ReviewState>{},
+          now: now,
+        ),
+        isEmpty,
+      );
+    });
+
+    test('兩個方向同時到期時只出韓文→中文；今天評過一個方向，另一個方向不出', () {
+      final forward = <String, ReviewState>{
+        'a': st('a', interval: 7, dueAt: past, last: yesterday),
+        'b': st('b', interval: 7, dueAt: past, last: yesterday),
+        'c': st('c', interval: 7, dueAt: later, last: now),
+      };
+      final reverse = <String, ReviewState>{
+        'a': st('a', interval: 3, dueAt: past, last: yesterday),
+        'b': st('b', interval: 3, dueAt: later, last: now),
+        'c': st('c', interval: 3, dueAt: past, last: yesterday),
+      };
+      final due = TwoWayQueue.dueCardIds(
+        wordIds: <String>['a', 'b', 'c'],
+        forward: forward,
+        reverse: reverse,
+        now: now,
+      );
+      // a：韓文→中文先；b：今天練過中文→韓文，韓文→中文留到明天；
+      // c：今天練過韓文→中文，中文→韓文留到明天。
+      expect(due, <String>['a']);
+    });
+
+    test('中文→韓文答錯後的重做照常出現（同一個方向不受限制）', () {
+      final forward = <String, ReviewState>{
+        'a': st('a', interval: 7, dueAt: later, last: yesterday),
+      };
+      final reverse = <String, ReviewState>{
+        'a': st('a', interval: 0, repetitions: 0,
+            dueAt: past, last: now.subtract(const Duration(minutes: 11))),
+      };
+      expect(
+        TwoWayQueue.dueCardIds(
+          wordIds: <String>['a'],
+          forward: forward,
+          reverse: reverse,
+          now: now,
+        ),
+        <String>[CardId.reverse('a')],
+      );
+    });
+
+    test('到期卡兩個方向合併、最早到期的先；一輪依序為到期、新反向卡、新單字', () {
+      final forward = <String, ReviewState>{
+        'a': st('a', interval: 3,
+            dueAt: now.subtract(const Duration(hours: 2)), last: yesterday),
+        'b': st('b', interval: 7, dueAt: later, last: yesterday),
+        'c': st('c', interval: 7, dueAt: later, last: yesterday),
+      };
+      final reverse = <String, ReviewState>{
+        'b': st('b', interval: 3,
+            dueAt: now.subtract(const Duration(hours: 5)), last: yesterday),
+      };
+      final queue = TwoWayQueue.build(
+        wordIds: <String>['a', 'b', 'c', 'd', 'e'],
+        forward: forward,
+        reverse: reverse,
+        now: now,
+        newWordLimit: 1,
+        newReverseLimit: 5,
+        dueLimit: 20,
+      );
+      expect(queue, <String>[
+        CardId.reverse('b'), // 最早到期
+        'a',
+        CardId.reverse('c'), // 新開啟的中文→韓文卡
+        'd', // 新單字（限 1 個）
+      ]);
+    });
+
+    test('到期上限算兩個方向合計；新卡數量照上限', () {
+      final forward = <String, ReviewState>{
+        for (final id in <String>['a', 'b', 'c'])
+          id: st(id, interval: 7, dueAt: past, last: yesterday),
+        for (final id in <String>['d', 'e'])
+          id: st(id, interval: 7, dueAt: later, last: yesterday),
+      };
+      final reverse = <String, ReviewState>{
+        'd': st('d', interval: 3,
+            dueAt: now.subtract(const Duration(hours: 5)), last: yesterday),
+      };
+      final queue = TwoWayQueue.build(
+        wordIds: <String>['a', 'b', 'c', 'd', 'e'],
+        forward: forward,
+        reverse: reverse,
+        now: now,
+        newWordLimit: 0,
+        newReverseLimit: 0,
+        dueLimit: 2,
+      );
+      expect(queue, <String>[CardId.reverse('d'), 'a']);
+    });
+
+    test('跨過午夜：中文→韓文答錯的重做先做完，韓文→中文才出', () {
+      final midnight = DateTime(2026, 10, 30, 0, 5);
+      final forward = <String, ReviewState>{
+        'a': st('a', interval: 7,
+            dueAt: DateTime(2026, 10, 29, 20), last: DateTime(2026, 10, 22)),
+      };
+      final reverse = <String, ReviewState>{
+        'a': st('a', interval: 0, repetitions: 0, lapses: 1,
+            dueAt: DateTime(2026, 10, 30, 0, 5),
+            last: DateTime(2026, 10, 29, 23, 55)),
+      };
+      expect(
+        TwoWayQueue.dueCardIds(
+          wordIds: <String>['a'],
+          forward: forward,
+          reverse: reverse,
+          now: midnight,
+        ),
+        <String>[CardId.reverse('a')],
+      );
+    });
+
+    test('被擋住的卡下次時間算成明天 0 點；沒有排定時為 null', () {
+      final forward = <String, ReviewState>{
+        'a': st('a', interval: 7, dueAt: past, last: yesterday),
+      };
+      final reverse = <String, ReviewState>{
+        'a': st('a', interval: 3, dueAt: later, last: now),
+      };
+      // a 的韓文→中文到期，但今天練過中文→韓文 → 明天 0 點。
+      expect(
+        TwoWayQueue.nextAvailableAt(
+          wordIds: <String>['a'],
+          forward: forward,
+          reverse: reverse,
+          now: now,
+        ),
+        DateTime(2026, 10, 30),
+      );
+      expect(
+        TwoWayQueue.nextAvailableAt(
+          wordIds: <String>['x'],
+          forward: forward,
+          reverse: reverse,
+          now: now,
+        ),
+        isNull,
+      );
+      // 沒被擋住、還沒到期：用原本的到期時間。
+      final notYet = <String, ReviewState>{
+        'b': st('b', interval: 7, dueAt: later, last: yesterday),
+      };
+      expect(
+        TwoWayQueue.nextAvailableAt(
+          wordIds: <String>['b'],
+          forward: notYet,
+          reverse: <String, ReviewState>{},
+          now: now,
+        ),
+        later,
+      );
+    });
+  });
 }

@@ -66,6 +66,11 @@ class ProgressPage extends StatelessWidget {
             ),
             StatTile(label: '待複習單字', value: '${state.dueCount}', caption: '張到期'),
             StatTile(
+              label: '中文→韓文',
+              value: '${state.reverseLearnedWordCount}',
+              caption: '個字已開始練',
+            ),
+            StatTile(
               label: '今天的新單字',
               value: '${state.newWordsLearnedToday} / ${state.newWordsQuotaToday}',
               caption: state.newWordsPaused ? '到期卡太多，暫停中' : '已學 / 今天額度',
@@ -86,7 +91,8 @@ class ProgressPage extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 '單字複習中答「不熟悉」累計 ${AppState.hardWordLapses} 次以上的字'
-                '（2 小時內重複答錯只算一次）。複習時會先顯示用法說明。',
+                '（韓文→中文與中文→韓文合計；同一個方向 2 小時內重複答錯只算一次）。'
+                '複習時會先顯示用法說明。',
                 style: theme.textTheme.bodySmall?.copyWith(color: muted),
               ),
               const SizedBox(height: 8),
