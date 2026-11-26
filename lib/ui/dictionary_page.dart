@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/catalog.dart';
 import '../data/content_models.dart';
 import '../logic/dictionary.dart';
+import 'haeyo_form_line.dart';
 import 'speak_button.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -166,6 +167,7 @@ class _ResultCard extends StatelessWidget {
             '主題：${topic.title}',
             style: theme.textTheme.bodySmall?.copyWith(color: muted),
           ),
+        HaeyoFormLine(word: word),
         const SizedBox(height: 6),
         Row(
           children: <Widget>[

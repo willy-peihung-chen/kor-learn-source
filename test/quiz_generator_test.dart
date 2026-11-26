@@ -477,6 +477,7 @@ void main() {
         <String>['특별히', '특히'],
         <String>['한참', '오래'],
         <String>['한참', '오랫동안'],
+        <String>['달', '개월'],
       ];
       for (final pair in pairs) {
         final a = Catalog.words.firstWhere((w) => w.hangul == pair[0]);

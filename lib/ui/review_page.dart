@@ -7,6 +7,7 @@ import '../logic/srs.dart';
 import '../state/app_state.dart';
 import '../util/format.dart';
 import 'app_scope.dart';
+import 'haeyo_form_line.dart';
 import 'speak_button.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -256,6 +257,7 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
         const SizedBox(height: 16),
         Text(word.meaning, style: theme.textTheme.headlineSmall),
         ..._hanja(context, word),
+        ..._haeyo(word),
         if (isHard && note.isNotEmpty) ...<Widget>[
           const SizedBox(height: 20),
           ...note,
@@ -324,6 +326,7 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
           ],
         ),
         ..._hanja(context, word),
+        ..._haeyo(word),
         if (isHard && note.isNotEmpty) ...<Widget>[
           const SizedBox(height: 20),
           ...note,
@@ -360,6 +363,17 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
           ...note,
         ],
       ],
+    ];
+  }
+
+  /// 動詞、形容詞翻開後多一行해요體（비싸다 → 비싸요）。
+  List<Widget> _haeyo(WordItem word) {
+    if (haeyoFormOf(word) == null) {
+      return const <Widget>[];
+    }
+    return <Widget>[
+      const SizedBox(height: 2),
+      HaeyoFormLine(word: word, center: true),
     ];
   }
 

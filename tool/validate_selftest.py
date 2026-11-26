@@ -56,3 +56,15 @@ for name,(data,e,key) in lv_cases.items():
 r=v.Report(); v.check_word_levels(words,r)
 lv_fp=[i.message for i in r.issues if i.level=='ERROR']
 print('單字等級 漏抓:',lv_miss); print('單字等級 誤報:',lv_fp, '（詞表比對：', '有' if exp else '沒有', '）')
+# Dart 結構：多打逗號、漏打括號要抓到；正常的尾隨逗號不能誤報。
+import tempfile, os as _os
+def _dart(src):
+    fd, path = tempfile.mkstemp(suffix='.dart'); _os.close(fd)
+    open(path, 'w', encoding='utf-8').write(src)
+    r = v.Report(); v.check_dart_structure(path, r); _os.remove(path)
+    return r.issues
+dart_bad = ["const a = W('x', 'y', , note: 'z');", "const a = W(, 'x');", "const a = W('x', 'y';"]
+dart_good = ["const a = W('x', 'y', note: 'a, , b');", "const a = <W>[\n  W('x', 'y',),\n];", "const a = W('x', 'y');"]
+dart_miss = [t for t in dart_bad if not _dart(t)]
+dart_fp = [t for t in dart_good if _dart(t)]
+print('Dart 結構 漏抓:', dart_miss); print('Dart 結構 誤報:', dart_fp)

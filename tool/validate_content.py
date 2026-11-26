@@ -119,7 +119,7 @@ def strip_comments(src: str) -> str:
 
 
 def check_dart_structure(path: str, report: Report) -> None:
-    """括號是否成對、字串是否有收尾。抓得到漏打括號、漏打引號這類錯。"""
+    """括號是否成對、字串是否有收尾、有沒有連續逗號。抓得到漏打括號、漏打引號、多打逗號這類錯。"""
     src = strip_comments(read(path))
     rel = os.path.relpath(path, ROOT)
     pairs = {')': '(', ']': '[', '}': '{'}
@@ -127,6 +127,7 @@ def check_dart_structure(path: str, report: Report) -> None:
     line = 1
     quote = None
     quote_line = 0
+    prev = ''  # 字串以外、上一個不是空白的字元（字串本身記成引號）
     i = 0
     while i < len(src):
         c = src[i]
@@ -142,8 +143,13 @@ def check_dart_structure(path: str, report: Report) -> None:
                 continue
             if c == quote:
                 quote = None
+                prev = c
             i += 1
             continue
+        if c == ',' and prev in (',', '('):
+            report.error(f'{rel}:{line}', '多了一個逗號（逗號前面沒有參數）')
+        if not c.isspace():
+            prev = c
         if c in '\'"':
             if src.startswith(c * 3, i):
                 j = src.find(c * 3, i + 3)
@@ -730,6 +736,23 @@ def check_word_levels(words: list[Word], report: Report, *, data: str | None = N
         report.error('單字等級', 'word_level_data.dart 與國語院詞表不一致（請重新執行 tool/gen_word_levels.py）')
 
 
+def check_haeyo_forms(report: Report) -> None:
+    """lib/data/haeyo_forms.dart 要和單字庫一致（加字、改字後要重新執行 tool/gen_haeyo_forms.py）。"""
+    import gen_haeyo_forms
+    path = os.path.join(DATA, 'haeyo_forms.dart')
+    if not os.path.exists(path):
+        report.error('해요體', '找不到 lib/data/haeyo_forms.dart（請執行 tool/gen_haeyo_forms.py）')
+        return
+    if not os.path.exists(gen_haeyo_forms.WORD_LIST):
+        report.warn('해요體', '找不到 docs/sources/ 的國語院詞表檔，沒有檢查 haeyo_forms.dart')
+        return
+    forms, unknown = gen_haeyo_forms.build()
+    for u in unknown:
+        report.error('해요體', f'字尾是 다、但詞性無法判斷（請加進 gen_haeyo_forms.py 的 EXTRA_VERBS 或 NOT_VERBS）：{u}')
+    if read(path) != gen_haeyo_forms.render(forms):
+        report.error('해요體', 'haeyo_forms.dart 不是最新（請重新執行 tool/gen_haeyo_forms.py）')
+
+
 def main() -> int:
     report = Report()
     for path in sorted(glob.glob(os.path.join(ROOT, 'lib', '**', '*.dart'), recursive=True)) + \
@@ -743,6 +766,7 @@ def main() -> int:
     units = load_units()
     check_words(words, report)
     check_word_levels(words, report)
+    check_haeyo_forms(report)
     check_grammar(grammar, report)
     check_units(units, words, grammar, report)
     check_speak_strings(report)

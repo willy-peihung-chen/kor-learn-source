@@ -6,6 +6,7 @@ import '../data/topic_groups.dart';
 import '../data/word_levels.dart';
 import '../state/app_state.dart';
 import 'app_scope.dart';
+import 'haeyo_form_line.dart';
 import 'progress_page.dart';
 import 'review_page.dart';
 import 'speak_button.dart';
@@ -291,6 +292,7 @@ class _WordRow extends StatelessWidget {
             SpeakButton(text: word.hangul, tooltip: '朗讀單字', iconSize: 22),
           ],
         ),
+        HaeyoFormLine(word: word),
         const SizedBox(height: 6),
         Row(
           children: <Widget>[

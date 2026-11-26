@@ -6,7 +6,7 @@ const WordTopic topicAdjectivesSize = WordTopic(
   title: '形容詞：大小、數量、速度與新舊',
   words: <WordItem>[
     WordItem('크다', '大', '집이 커요.', '房子很大。'),
-    WordItem('작다', '小', '가방이 작아요.', '包包很小。'),
+    WordItem('작다', '小', '가방이 작아요.', '包包很小。', note: '指尺寸小；年紀小用 어리다。'),
     WordItem('길다', '長', '머리가 길어요.', '頭髮很長。'),
     WordItem('짧다', '短', '치마가 짧아요.', '裙子很短。'),
     WordItem('높다', '高（位置）', '산이 높아요.', '山很高。'),

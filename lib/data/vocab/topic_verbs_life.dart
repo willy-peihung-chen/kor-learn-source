@@ -6,7 +6,7 @@ const WordTopic topicVerbsLife = WordTopic(
   title: '動詞：生活與活動',
   words: <WordItem>[
     WordItem('자다', '睡覺（敬語為 주무시다）', '밤에 자요.', '晚上睡覺。'),
-    WordItem('일하다', '工作', '회사에서 일해요.', '在公司工作。'),
+    WordItem('일하다', '工作', '회사에서 일해요.', '在公司工作。', note: '「工作」的一般說法；較正式的說法是 근무하다。'),
     WordItem('쉬다', '休息', '집에서 쉬어요.', '在家休息。'),
     WordItem('놀다', '玩', '친구와 놀아요.', '和朋友玩。'),
     WordItem('노래하다', '唱歌', '노래해요.', '唱歌。'),
