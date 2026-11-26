@@ -238,12 +238,8 @@ class Lessons {
 
   static const List<PlannedLesson> planned = <PlannedLesson>[
     PlannedLesson(
-      title: '單元 32 以後',
-      summary: '尚未建立。單元 1～31 已涵蓋 TOPIK I 的主要溝通情境；之後視查核結果再決定是否往 TOPIK II 延伸。',
-    ),
-    PlannedLesson(
-      title: '不規則活用（其餘）',
-      summary: 'ㅅ、ㅎ 等其餘不規則變化（ㅂ、ㄷ、르 已在單元 23、28 學過）。',
+      title: '單元 40 以後',
+      summary: '尚未建立。單元 1～39 已涵蓋 TOPIK I 的主要溝通情境與常用文法；之後視查核結果再決定是否往 TOPIK II 延伸。',
     ),
     PlannedLesson(
       title: '職場與長輩用語（합니다體、尊敬說法）',

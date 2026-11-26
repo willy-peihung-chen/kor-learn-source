@@ -69,7 +69,7 @@ void main() {
   group('課程', () {
     test('文法課，卡片 id 在同一課內不重複', () {
       expect(Lessons.hangul.length, 6);
-      expect(Lessons.units.length, 31);
+      expect(Lessons.units.length, 39);
       expect(Lessons.casual.length, 1);
       expect(
         Lessons.grammar.length,

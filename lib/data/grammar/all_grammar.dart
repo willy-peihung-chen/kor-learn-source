@@ -1,6 +1,7 @@
 import '../content_models.dart';
 import 'lesson_basic_sentences.dart';
 import 'lesson_communication.dart';
+import 'lesson_communication2.dart';
 import 'lesson_connectors.dart';
 import 'lesson_how_korean_works.dart';
 import 'lesson_particles1.dart';
@@ -20,5 +21,6 @@ const List<GrammarLessonData> allGrammarLessons = <GrammarLessonData>[
   grammarTenseAbility,
   grammarConnectors,
   grammarCommunication,
+  grammarCommunication2,
   grammarBanmal,
 ];

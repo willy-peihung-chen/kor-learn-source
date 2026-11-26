@@ -632,7 +632,7 @@ def check_units(units: list[Unit], words: list[Word], grammar: list[GPoint], rep
                     if it.tag == 'polite' and re.search(r'(시|세)요$', last_clause(it.display)) \
                             and not re.search(r'(주세요|안녕하세요|여보세요)$', last_clause(it.display)):
                         report.warn(cw, f'句尾有 -(으)세요，標籤可能應為 honorific：{it.display}')
-                    if it.tag == 'honorific' and not re.search(r'(세요|셔요|시[겠었]|십니|으세|하세|되세)', it.display):
+                    if it.tag == 'honorific' and not re.search(r'(세요|셔요|셨|시[겠었면고지니는]|십니|으세|하세|되세)', it.display):
                         report.warn(cw, f'標成尊敬說法，但看不到 -(으)시-：{it.display}')
                 elif it.tag is not None:
                     report.warn(cw, f'不是句子卻有語氣標籤：{it.display}')

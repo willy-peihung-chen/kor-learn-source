@@ -350,6 +350,14 @@ List<Lesson> buildUnitLessons() => <Lesson>[
       _unitFeelings(),
       _unitWork(),
       _unitGoodbye(),
+      _unitPharmacy(),
+      _unitPostOffice(),
+      _unitInvitation(),
+      _unitLate(),
+      _unitHotelProblem(),
+      _unitChangePlans(),
+      _unitMoving(),
+      _unitOpinion(),
     ];
 
 Lesson _unitIntroduce() => Lesson(
@@ -4469,6 +4477,968 @@ Lesson _unitGoodbye() => Lesson(
         'word:또',
         'word:기억하다',
         'word:돌아가다',
+      ]),
+    );
+
+Lesson _unitPharmacy() => Lesson(
+      id: 'unit-32',
+      group: LessonGroup.unit,
+      title: '單元 32・藥局買藥',
+      summary: '在藥局說症狀、聽懂吃藥的方法，用 -(으)면 안 돼요 說「不可以…」，認識 ㅅ 不規則（낫다）。',
+      cards: <LessonCard>[
+        LessonCard.concept(
+          id: 'u32:goal',
+          title: '這個單元要學會什麼',
+          paragraphs: const <String>[
+            '學會說：「목이 아프고 기침이 나요.」（喉嚨痛，還會咳嗽。），聽懂「술을 마시면 안 돼요.」（不可以喝酒。）。',
+            '做法：先認識藥局常用的詞，再練說症狀、注意事項和吃藥的方法，最後聽一段在藥局買感冒藥的對話。',
+            '每個句子底下都有語氣標籤。半語版放在「半語（額外學習）」。',
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u32:words',
+          title: '先認識這些詞',
+          paragraphs: const <String>[
+            '點每一個聽三次，跟著念。藥局、感冒的詞在單元 18 學過一部分，這裡一起複習。',
+          ],
+          items: <SoundItem>[
+            _sound('약국', '藥局'),
+            _sound('약', '藥'),
+            _sound('감기', '感冒'),
+            _sound('기침', '咳嗽'),
+            _sound('열', '發燒；熱度'),
+            _sound('목', '脖子；喉嚨'),
+            _sound('두통', '頭痛'),
+            _sound('하루', '一天'),
+            _sound('식사', '用餐；一餐'),
+            _sound('술', '酒'),
+            _sound('담배', '香菸'),
+            _sound('졸려요', '想睡（졸리다）'),
+          ],
+        ),
+        LessonCard.concept(
+          id: 'u32:pattern',
+          title: '句型：___(으)면 안 돼요',
+          paragraphs: const <String>[
+            '說症狀：「목이 아파요」（喉嚨痛）、「기침이 나요」（咳嗽）、「열이 있어요」（發燒）、「두통이 있어요」（頭痛）。',
+            '「-(으)면 안 돼요」＝不可以…：술을 마시면 안 돼요。藥師說明注意事項時很常用。',
+            '吃藥的方法：「하루에 세 번 드세요」（一天吃三次）、「식사 후에 드세요」（飯後吃）。藥師對客人用尊敬說法 드세요。',
+            '「낫다」（病好）是 ㅅ 不規則：나아요、나았어요、나으세요。對生病的人說「빨리 나으세요.」（祝你早日康復。）',
+          ],
+        ),
+        _grammarCard('eumyeon_an_dwaeyo'),
+        _grammarCard('s_irregular'),
+        LessonCard.sound(
+          id: 'u32:drill1',
+          title: '練習・說症狀',
+          paragraphs: const <String>[
+            '每句點一下聽，再自己大聲念一次。「감기약」＝感冒藥。「기침이 나요」和單元 18 的「기침을 해요」意思一樣，兩種都可以。「아프셨어요」＝아프다＋-(으)시-＋-았/었어요，是對對方的尊敬過去式（-(으)셨어요）。',
+          ],
+          items: <SoundItem>[
+            _sound('감기약 있어요?', '有感冒藥嗎？', SpeechTag.polite),
+            _sound('목이 아프고 기침이 나요.', '喉嚨痛，還會咳嗽。', SpeechTag.polite),
+            _sound('열도 조금 있어요.', '也有一點發燒。', SpeechTag.polite),
+            _sound('언제부터 아프셨어요?', '從什麼時候開始不舒服的？', SpeechTag.honorific),
+            _sound('어제부터 아파요.', '從昨天開始不舒服。', SpeechTag.polite),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u32:drill2',
+          title: '練習・不可以…（-(으)면 안 돼요）',
+          paragraphs: const <String>[
+            '無終聲、ㄹ 終聲加 면 안 돼요，有終聲加 으면 안 돼요。-(으)ㄹ 수 있어요 除了「會、能」，也可以表示「可能會…」：졸릴 수 있어요＝可能會想睡。「운전하다」＝開車；「담배를 피우다」＝抽菸。',
+          ],
+          items: <SoundItem>[
+            _sound('이 약을 먹고 술을 마시면 안 돼요.', '吃這個藥以後不可以喝酒。', SpeechTag.polite),
+            _sound('약을 먹고 운전하면 안 돼요.', '吃藥以後不可以開車。', SpeechTag.polite),
+            _sound('이 약을 먹으면 졸릴 수 있어요.', '吃這個藥可能會想睡。', SpeechTag.polite),
+            _sound('담배를 피우면 안 돼요.', '不可以抽菸。', SpeechTag.polite),
+            _sound('우유하고 같이 먹어도 돼요?', '可以配牛奶一起吃嗎？', SpeechTag.polite),
+            _sound('아니요, 우유하고 같이 먹으면 안 돼요.', '不行，不可以配牛奶一起吃。', SpeechTag.polite),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u32:drill3',
+          title: '練習・吃藥的方法與早日康復',
+          paragraphs: const <String>[
+            '「금방」＝很快、馬上；「다」＝全部、完全。낫다 接母音開頭的語尾時，ㅅ 會脫落：나을 거예요、나았어요、나으세요。',
+          ],
+          items: <SoundItem>[
+            _sound('하루에 세 번 드세요.', '請一天吃三次。', SpeechTag.honorific),
+            _sound('식사 후에 드세요.', '請飯後吃。', SpeechTag.honorific),
+            _sound('이 약을 먹으면 금방 나을 거예요.', '吃了這個藥，很快就會好。', SpeechTag.polite),
+            _sound('감기가 다 나았어요.', '感冒全好了。', SpeechTag.polite),
+            _sound('빨리 나으세요.', '祝你早日康復。', SpeechTag.honorific),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u32:dialog',
+          title: '短對話：買感冒藥',
+          paragraphs: const <String>[
+            'A 是藥師，B 是感冒的客人。「그리고」＝還有；「드시다」也是 마시다（喝）的尊敬說法。先照順序聽一遍，再遮住中文，試著只靠聲音聽懂。',
+          ],
+          items: <SoundItem>[
+            _line('B', '감기약 있어요?', '有感冒藥嗎？', SpeechTag.polite),
+            _line('A', '네, 어디가 아프세요?', '有的，您哪裡不舒服？', SpeechTag.honorific),
+            _line('B', '목이 아프고 기침이 나요.', '喉嚨痛，還會咳嗽。', SpeechTag.polite),
+            _line('A', '이 약을 하루에 세 번, 식사 후에 드세요.', '這個藥一天三次，飯後吃。', SpeechTag.honorific),
+            _line('B', '커피하고 같이 먹어도 돼요?', '可以配咖啡一起吃嗎？', SpeechTag.polite),
+            _line('A', '아니요, 물하고 같이 드세요. 그리고 술은 드시면 안 돼요.', '不行，請配水吃。還有，不可以喝酒。', SpeechTag.honorific),
+            _line('B', '네, 알겠어요.', '好，我知道了。', SpeechTag.polite),
+            _line('B', '감사합니다.', '謝謝。', SpeechTag.formal),
+            _line('A', '빨리 나으세요.', '祝您早日康復。', SpeechTag.honorific),
+          ],
+        ),
+      ],
+      quizSeeds: _wordSeeds(const <String>[
+        'word:약국',
+        'word:약',
+        'word:감기',
+        'word:기침',
+        'word:열#熱',
+        'word:목',
+        'word:두통',
+        'word:하루',
+        'word:식사',
+        'word:술',
+        'word:담배',
+        'word:졸리다',
+      ]),
+    );
+
+Lesson _unitPostOffice() => Lesson(
+      id: 'unit-33',
+      group: LessonGroup.unit,
+      title: '單元 33・郵局寄包裹',
+      summary: '在郵局寄包裹到國外，用 -(으)려면 問「如果想要…的話，該怎麼做」。',
+      cards: <LessonCard>[
+        LessonCard.concept(
+          id: 'u33:goal',
+          title: '這個單元要學會什麼',
+          paragraphs: const <String>[
+            '學會說：「이 소포를 대만에 보내고 싶어요.」（我想把這個包裹寄到台灣。）、「빨리 보내려면 어떻게 해야 해요?」（想快點寄到的話，該怎麼做？）。',
+            '做法：先認識郵局常用的詞，再練寄包裹、「如果想要…」的 -(으)려면，以及說明包裹內容，最後聽一段在郵局寄包裹的對話。',
+            '每個句子底下都有語氣標籤。半語版放在「半語（額外學習）」。',
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u33:words',
+          title: '先認識這些詞',
+          paragraphs: const <String>[
+            '點每一個聽三次，跟著念。',
+          ],
+          items: <SoundItem>[
+            _sound('우체국', '郵局'),
+            _sound('소포', '包裹'),
+            _sound('편지', '信'),
+            _sound('상자', '箱子'),
+            _sound('주소', '地址'),
+            _sound('무게', '重量'),
+            _sound('비행기', '飛機'),
+            _sound('며칠', '幾號；幾天'),
+            _sound('컵', '杯子'),
+            _sound('보내요', '寄；送（보내다）'),
+            _sound('걸려요', '花（時間）（걸리다）'),
+            _sound('깨져요', '破；碎（깨지다）'),
+            _sound('확인해요', '確認（확인하다）'),
+          ],
+        ),
+        LessonCard.concept(
+          id: 'u33:pattern',
+          title: '句型：___(으)려면 ___',
+          paragraphs: const <String>[
+            '「-(으)려면」＝如果想要…的話：빨리 보내려면 EMS로 보내세요（想快點寄到的話，請用 EMS 寄）。後面常接 -아/어야 해요（得…，單元 18）。',
+            '寄東西：「소포를 대만에 보내고 싶어요.」（想把包裹寄到台灣。）「비행기로 보내 주세요.」（請用空運寄。）',
+            '問要多久：「며칠 걸려요?」（要幾天？）回答：「일주일쯤 걸려요.」（大約一個星期。）',
+            '「깨지는 물건」＝易碎的東西（動詞＋-는＋名詞，單元 30 學過）。',
+            '郵局職員也常說「항공（편）」（空運）、「배」（海運）、「EMS」（國際快捷）。寄送天數依寄送方式和地區而定，這裡的「一個星期」只是例子。',
+          ],
+        ),
+        _grammarCard('euryeomyeon'),
+        LessonCard.sound(
+          id: 'u33:drill1',
+          title: '練習・寄包裹',
+          paragraphs: const <String>[
+            '每句點一下聽，再自己大聲念一次。「쯤」＝大約；「일주일」＝一個星期。',
+          ],
+          items: <SoundItem>[
+            _sound('이 소포를 대만에 보내고 싶어요.', '我想把這個包裹寄到台灣。', SpeechTag.polite),
+            _sound('상자 안에 뭐가 있어요?', '箱子裡面有什麼？', SpeechTag.polite),
+            _sound('옷하고 책이 있어요.', '有衣服和書。', SpeechTag.polite),
+            _sound('비행기로 보내 주세요.', '請用空運寄。', SpeechTag.polite),
+            _sound('며칠 걸려요?', '要幾天？', SpeechTag.polite),
+            _sound('일주일쯤 걸려요.', '大約一個星期。', SpeechTag.polite),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u33:drill2',
+          title: '練習・如果想要…的話（-(으)려면）',
+          paragraphs: const <String>[
+            '無終聲、ㄹ 終聲加 려면，有終聲加 으려면（받다 → 받으려면）。「종이」＝紙；「까지」＝到…為止（單元 4）。',
+          ],
+          items: <SoundItem>[
+            _sound('대만까지 보내려면 얼마예요?', '寄到台灣的話，要多少錢？', SpeechTag.polite),
+            _sound('빨리 보내려면 어떻게 해야 해요?', '想快點寄到的話，該怎麼做？', SpeechTag.polite),
+            _sound('빨리 보내려면 EMS로 보내세요.', '想快點寄到的話，請用 EMS 寄。', SpeechTag.honorific),
+            _sound('소포를 보내려면 이 종이에 주소를 쓰세요.', '要寄包裹的話，請在這張紙上寫地址。', SpeechTag.honorific),
+            _sound('내일까지 받으려면 EMS로 보내야 해요.', '想在明天以前收到的話，得用 EMS 寄。', SpeechTag.polite),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u33:drill3',
+          title: '練習・說明包裹裡的東西',
+          paragraphs: const <String>[
+            '寄易碎的東西要先說，請對方小心處理。「포장 상자」＝包裝用的箱子。',
+          ],
+          items: <SoundItem>[
+            _sound('깨지는 물건이 있어요?', '有易碎的東西嗎？', SpeechTag.polite),
+            _sound('네, 컵이 있어요. 조심해 주세요.', '有，裡面有杯子。請小心。', SpeechTag.polite),
+            _sound('여기에서 포장 상자를 살 수 있어요?', '這裡可以買包裝用的箱子嗎？', SpeechTag.polite),
+            _sound('네, 저쪽에서 사세요.', '可以，請在那邊買。', SpeechTag.honorific),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u33:dialog',
+          title: '短對話：寄包裹到台灣',
+          paragraphs: const <String>[
+            'A 是郵局職員，B 是要寄包裹的客人。「보내시겠어요?」＝您要寄…嗎？（客氣地問對方想怎麼做）；「보내시면」＝如果您寄…。「-시-」表示尊敬對方，這裡聽得懂就好。先照順序聽一遍，再遮住中文，試著只靠聲音聽懂。',
+          ],
+          items: <SoundItem>[
+            _line('A', '어서 오세요.', '歡迎光臨。', SpeechTag.honorific),
+            _line('B', '이 소포를 대만에 보내고 싶어요.', '我想把這個包裹寄到台灣。', SpeechTag.polite),
+            _line('A', '상자 안에 깨지는 물건이 있어요?', '箱子裡有易碎的東西嗎？', SpeechTag.polite),
+            _line('B', '네, 컵이 있어요. 조심해 주세요.', '有，裡面有杯子。請小心。', SpeechTag.polite),
+            _line('A', '비행기로 보내시겠어요?', '要用空運寄嗎？', SpeechTag.honorific),
+            _line('B', '네, 며칠 걸려요?', '是的，要幾天？', SpeechTag.polite),
+            _line('A', '일주일쯤 걸려요.', '大約一個星期。', SpeechTag.polite),
+            _line('B', '더 빨리 보내려면 어떻게 해야 해요?', '想更快寄到的話，該怎麼做？', SpeechTag.polite),
+            _line('A', 'EMS로 보내시면 더 빨리 도착해요. 여기에 주소를 써 주세요.', '用 EMS 寄的話會比較快到。請在這裡寫地址。', SpeechTag.polite),
+            _line('B', '네, 알겠어요.', '好，我知道了。', SpeechTag.polite),
+          ],
+        ),
+      ],
+      quizSeeds: _wordSeeds(const <String>[
+        'word:우체국',
+        'word:소포',
+        'word:편지',
+        'word:상자',
+        'word:주소',
+        'word:무게',
+        'word:비행기',
+        'word:며칠',
+        'word:컵',
+        'word:보내다',
+        'word:걸리다',
+        'word:깨지다',
+        'word:확인하다',
+      ]),
+    );
+
+Lesson _unitInvitation() => Lesson(
+      id: 'unit-34',
+      group: LessonGroup.unit,
+      title: '單元 34・邀請與婉拒',
+      summary: '邀請朋友、接受邀請，用 -는데／-(으)ㄴ데 先說明情況，委婉地拒絕。',
+      cards: <LessonCard>[
+        LessonCard.concept(
+          id: 'u34:goal',
+          title: '這個單元要學會什麼',
+          paragraphs: const <String>[
+            '學會說：「가고 싶은데 그날은 약속이 있어요.」（很想去，可是那天有約了。），並且有禮貌地拒絕邀請。',
+            '做法：先認識邀請常用的詞，再練邀請、先說明情況的 -는데，以及委婉拒絕和回應，最後聽一段邀請參加生日派對的對話。',
+            '每個句子底下都有語氣標籤。半語版放在「半語（額外學習）」。',
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u34:words',
+          title: '先認識這些詞',
+          paragraphs: const <String>[
+            '點每一個聽三次，跟著念。',
+          ],
+          items: <SoundItem>[
+            _sound('생일', '生日'),
+            _sound('파티', '派對'),
+            _sound('주말', '週末'),
+            _sound('시간', '時間'),
+            _sound('약속', '約定；約會'),
+            _sound('다음', '下一個；之後'),
+            _sound('같이', '一起'),
+            _sound('꼭', '一定'),
+            _sound('초대해요', '邀請（초대하다）'),
+            _sound('바빠요', '忙（바쁘다）'),
+            _sound('괜찮아요', '沒關係；還好（괜찮다）'),
+          ],
+        ),
+        LessonCard.concept(
+          id: 'u34:pattern',
+          title: '句型：___는데／(으)ㄴ데 ___',
+          paragraphs: const <String>[
+            '「-는데／-(으)ㄴ데」先說一個情況，後面再接主要的話：「가고 싶은데 시간이 없어요.」（很想去，可是沒有時間。）',
+            '動詞和 있다／없다 接 -는데（하는데、있는데），形容詞接 -(으)ㄴ데（바쁜데、싶은데）。',
+            '韓國人拒絕邀請時，常先說「想去」，再說原因，不直接說「不要」：「가고 싶은데 그날은 약속이 있어요.」',
+            '句子停在 -는데요／-(으)ㄴ데요 也是委婉的拒絕：「그날은 좀 바쁜데요.」（那天有點忙……）對方會明白意思。',
+          ],
+        ),
+        _grammarCard('neunde'),
+        LessonCard.sound(
+          id: 'u34:drill1',
+          title: '練習・邀請',
+          paragraphs: const <String>[
+            '每句點一下聽，再自己大聲念一次。「혹시」＝請問、或許（客氣地開口）。',
+          ],
+          items: <SoundItem>[
+            _sound('혹시 이번 주말에 시간 있어요?', '請問這個週末有空嗎？', SpeechTag.polite),
+            _sound('토요일에 우리 집에서 생일 파티를 해요.', '星期六在我家辦生日派對。', SpeechTag.polite),
+            _sound('친구들도 초대했어요.', '我也邀請了朋友們。', SpeechTag.polite),
+            _sound('시간이 있으면 꼭 오세요.', '有空的話一定要來。', SpeechTag.honorific),
+            _sound('좋아요. 꼭 갈게요.', '好啊，我一定去。', SpeechTag.polite),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u34:drill2',
+          title: '練習・先說明情況（-는데／-(으)ㄴ데）',
+          paragraphs: const <String>[
+            '動詞、있다／없다 接 -는데；形容詞接 -(으)ㄴ데（싶다 → 싶은데、바쁘다 → 바쁜데、어렵다 → 어려운데）。「이따가」＝等一下（今天稍後）。',
+          ],
+          items: <SoundItem>[
+            _sound('가고 싶은데 그날은 약속이 있어요.', '很想去，可是那天有約了。', SpeechTag.polite),
+            _sound('저도 가고 싶은데 일이 너무 많아요.', '我也很想去，可是工作太多了。', SpeechTag.polite),
+            _sound('지금 좀 바쁜데 이따가 전화해도 돼요?', '我現在有點忙，等一下再打給你可以嗎？', SpeechTag.polite),
+            _sound('이번 주는 어려운데 다음 주는 괜찮아요.', '這個星期不方便，下個星期可以。', SpeechTag.polite),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u34:drill3',
+          title: '練習・婉拒與回應',
+          paragraphs: const <String>[
+            '被拒絕時，可以說「아쉽네요」（真可惜呢），再約下次。',
+          ],
+          items: <SoundItem>[
+            _sound('그날은 좀 바쁜데요.', '那天有點忙……', SpeechTag.polite),
+            _sound('초대해 줘서 고마워요.', '謝謝你邀請我。', SpeechTag.polite),
+            _sound('아쉽네요. 다음에 꼭 같이 가요.', '真可惜呢。下次一定要一起去。', SpeechTag.polite),
+            _sound('괜찮아요. 다음에 만나요.', '沒關係，下次見。', SpeechTag.polite),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u34:dialog',
+          title: '短對話：生日派對的邀請',
+          paragraphs: const <String>[
+            'A 邀請朋友 B 來參加生日派對，B 那天有約。先照順序聽一遍，再遮住中文，試著只靠聲音聽懂。',
+          ],
+          items: <SoundItem>[
+            _line('A', '혹시 이번 토요일에 시간 있어요?', '請問這個星期六有空嗎？', SpeechTag.polite),
+            _line('B', '네, 왜요?', '有啊，怎麼了？', SpeechTag.polite),
+            _line('A', '우리 집에서 생일 파티를 하는데 올 수 있어요?', '我在家裡辦生日派對，你能來嗎？', SpeechTag.polite),
+            _line('B', '가고 싶은데 그날은 약속이 있어요.', '很想去，可是那天有約了。', SpeechTag.polite),
+            _line('A', '아, 그래요? 아쉽네요.', '啊，是嗎？真可惜呢。', SpeechTag.polite),
+            _line('B', '초대해 줘서 고마워요. 다음에는 꼭 갈게요.', '謝謝你邀請我。下次一定去。', SpeechTag.polite),
+            _line('A', '네, 다음에 꼭 같이 놀아요.', '好，下次一定要一起玩。', SpeechTag.polite),
+          ],
+        ),
+      ],
+      quizSeeds: _wordSeeds(const <String>[
+        'word:생일',
+        'word:파티',
+        'word:주말',
+        'word:시간',
+        'word:약속',
+        'word:다음',
+        'word:같이',
+        'word:꼭',
+        'word:초대하다',
+        'word:바쁘다',
+        'word:괜찮다',
+      ]),
+    );
+
+Lesson _unitLate() => Lesson(
+      id: 'unit-35',
+      group: LessonGroup.unit,
+      title: '單元 35・遲到：道歉與說明理由',
+      summary: '遲到時道歉、用 -기 때문에 說明原因，以及回應別人的道歉。',
+      cards: <LessonCard>[
+        LessonCard.concept(
+          id: 'u35:goal',
+          title: '這個單元要學會什麼',
+          paragraphs: const <String>[
+            '學會說：「늦어서 죄송해요.」（對不起，我遲到了。）、「버스를 놓쳤기 때문에 늦었어요.」（因為錯過了公車，所以遲到了。）。',
+            '做法：先認識常用的詞，再練道歉、說明原因的 -기 때문에，以及回應道歉，最後聽一段約會遲到的對話。',
+            '每個句子底下都有語氣標籤。半語版放在「半語（額外學習）」。',
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u35:words',
+          title: '先認識這些詞',
+          paragraphs: const <String>[
+            '點每一個聽三次，跟著念。',
+          ],
+          items: <SoundItem>[
+            _sound('길', '路；道路'),
+            _sound('버스', '公車；巴士'),
+            _sound('사고', '事故'),
+            _sound('회의', '會議'),
+            _sound('일찍', '早'),
+            _sound('방금', '剛才；剛剛'),
+            _sound('늦었어요', '晚了；遲到了（늦다）'),
+            _sound('죄송해요', '抱歉；對不起（죄송하다）'),
+            _sound('막혀요', '塞住；塞車（막히다）'),
+            _sound('놓쳤어요', '錯過了（놓치다）'),
+            _sound('기다려요', '等待（기다리다）'),
+          ],
+        ),
+        LessonCard.concept(
+          id: 'u35:pattern',
+          title: '句型：___기 때문에 늦었어요',
+          paragraphs: const <String>[
+            '「-기 때문에」＝因為…：길이 막혔기 때문에 늦었어요。前面可以加過去式（막혔기 때문에），這點和 -아서/어서 不同。',
+            '名詞後面直接加 때문에：비 때문에（因為下雨）、회의 때문에（因為開會）。',
+            '道歉：「늦어서 죄송해요.」（對不起，我遲到了。）對朋友可以說「늦어서 미안해요.」道歉、道謝前面要用 -아서/어서，不說「늦었기 때문에 죄송해요」。',
+            '-기 때문에 語氣比較正式；日常口語說明理由，也常說 -아서/어서：버스를 놓쳐서 늦었어요。',
+            '回應道歉：「괜찮아요.」（沒關係。）、「저도 방금 왔어요.」（我也剛到。）',
+          ],
+        ),
+        _grammarCard('gi_ttaemune'),
+        LessonCard.sound(
+          id: 'u35:drill1',
+          title: '練習・道歉',
+          paragraphs: const <String>[
+            '每句點一下聽，再自己大聲念一次。「다음부터는」＝下次開始。',
+          ],
+          items: <SoundItem>[
+            _sound('늦어서 죄송해요.', '對不起，我遲到了。', SpeechTag.polite),
+            _sound('많이 기다렸어요?', '等很久了嗎？', SpeechTag.polite),
+            _sound('아니에요, 저도 방금 왔어요.', '不會，我也剛到。', SpeechTag.polite),
+            _sound('다음부터는 일찍 올게요.', '下次開始我會早點來。', SpeechTag.polite),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u35:drill2',
+          title: '練習・說明原因（-기 때문에）',
+          paragraphs: const <String>[
+            '過去的原因用 -았/었기 때문에；名詞直接加 때문에。「사고가 나다」＝發生事故；「늦게」＝晚、遲（늦다 的副詞形）。',
+          ],
+          items: <SoundItem>[
+            _sound('길이 막혔기 때문에 늦었어요.', '因為塞車，所以遲到了。', SpeechTag.polite),
+            _sound('버스를 놓쳤기 때문에 늦었어요.', '因為錯過了公車，所以遲到了。', SpeechTag.polite),
+            _sound('사고가 났기 때문에 지하철이 늦게 왔어요.', '因為發生事故，地鐵晚到了。', SpeechTag.polite),
+            _sound('비 때문에 길이 많이 막혀요.', '因為下雨，路很塞。', SpeechTag.polite),
+            _sound('내일은 회의가 있기 때문에 못 가요.', '明天因為有會議，所以不能去。', SpeechTag.polite),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u35:drill3',
+          title: '練習・事先聯絡',
+          paragraphs: const <String>[
+            '「미리」＝事先。會遲到時，先傳訊息或打電話說一聲比較有禮貌。',
+          ],
+          items: <SoundItem>[
+            _sound('늦으면 미리 연락해 주세요.', '如果會遲到，請事先聯絡我。', SpeechTag.polite),
+            _sound('미리 연락을 못 해서 죄송해요.', '對不起，沒有事先跟你聯絡。', SpeechTag.polite),
+            _sound('괜찮아요. 저도 늦을 때가 있어요.', '沒關係，我也有遲到的時候。', SpeechTag.polite),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u35:dialog',
+          title: '短對話：約好見面卻遲到了',
+          paragraphs: const <String>[
+            'A 和 B 約好見面，A 遲到了。「기다리셨어요?」是單元 32 學過的尊敬過去式。先照順序聽一遍，再遮住中文，試著只靠聲音聽懂。',
+          ],
+          items: <SoundItem>[
+            _line('A', '늦어서 정말 죄송해요. 많이 기다리셨어요?', '真的很抱歉我遲到了。您等很久了嗎？', SpeechTag.honorific),
+            _line('B', '괜찮아요. 무슨 일이 있었어요?', '沒關係。發生什麼事了？', SpeechTag.polite),
+            _line('A', '버스를 놓쳤기 때문에 늦었어요.', '因為錯過了公車，所以遲到了。', SpeechTag.polite),
+            _line('A', '미리 연락을 못 해서 죄송해요.', '對不起，沒有事先跟您聯絡。', SpeechTag.polite),
+            _line('B', '괜찮아요. 다음에는 늦으면 미리 연락해 주세요.', '沒關係。下次如果會遲到，請事先聯絡我。', SpeechTag.polite),
+            _line('A', '네, 다음부터는 일찍 올게요.', '好，下次開始我會早點來。', SpeechTag.polite),
+          ],
+        ),
+      ],
+      quizSeeds: _wordSeeds(const <String>[
+        'word:길#路',
+        'word:버스',
+        'word:사고',
+        'word:회의',
+        'word:일찍',
+        'word:방금',
+        'word:늦다',
+        'word:죄송하다',
+        'word:막히다',
+        'word:놓치다',
+        'word:기다리다',
+      ]),
+    );
+
+Lesson _unitHotelProblem() => Lesson(
+      id: 'unit-36',
+      group: LessonGroup.unit,
+      title: '單元 36・飯店房間有問題',
+      summary: '打電話到櫃檯說房間的問題，用 -아/어 있다 說「…著」的狀態，請對方幫忙處理。',
+      cards: <LessonCard>[
+        LessonCard.concept(
+          id: 'u36:goal',
+          title: '這個單元要學會什麼',
+          paragraphs: const <String>[
+            '學會說：「에어컨이 고장 났어요.」（冷氣壞了。）、「창문이 열려 있어요.」（窗戶開著。），並客氣地請櫃檯幫忙。',
+            '做法：先認識房間裡的詞，再練說問題、「…著」的 -아/어 있다，以及請人處理，最後聽一段打電話到櫃檯的對話。',
+            '每個句子底下都有語氣標籤。半語版放在「半語（額外學習）」。',
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u36:words',
+          title: '先認識這些詞',
+          paragraphs: const <String>[
+            '點每一個聽三次，跟著念。',
+          ],
+          items: <SoundItem>[
+            _sound('호텔', '飯店；旅館'),
+            _sound('방', '房間'),
+            _sound('창문', '窗戶'),
+            _sound('에어컨', '冷氣'),
+            _sound('수건', '毛巾'),
+            _sound('고장', '故障'),
+            _sound('켜져요', '（燈、電器）亮起；打開（켜지다）'),
+            _sound('꺼져요', '熄滅（꺼지다）'),
+            _sound('나와요', '出來（나오다）'),
+            _sound('고쳐요', '修理（고치다）'),
+            _sound('바꿔요', '換（바꾸다）'),
+            _sound('더러워요', '髒（더럽다）'),
+            _sound('시끄러워요', '吵（시끄럽다）'),
+          ],
+        ),
+        LessonCard.concept(
+          id: 'u36:pattern',
+          title: '句型：___아/어 있어요',
+          paragraphs: const <String>[
+            '「-아/어 있다」＝動作結束後的狀態「…著」：창문이 열려 있어요（窗戶開著）、불이 켜져 있어요（燈開著）。',
+            '說東西壞了：「___이／가 고장 났어요.」（…壞了。）沒有熱水：「뜨거운 물이 안 나와요.」',
+            '請櫃檯處理，用單元 3、9 學過的 -아/어 주세요，加「좀」語氣比較柔和：「다른 방으로 좀 바꿔 주세요.」（請幫我換個房間。）',
+            '飯店人員對客人常說「바로 고쳐 드릴게요.」（馬上幫您修。）「-아/어 드리다」是「為您做…」的客氣說法。',
+          ],
+        ),
+        _grammarCard('a_eo_itda'),
+        LessonCard.sound(
+          id: 'u36:drill1',
+          title: '練習・說房間的問題',
+          paragraphs: const <String>[
+            '每句點一下聽，再自己大聲念一次。「뜨거운 물」＝熱水。',
+          ],
+          items: <SoundItem>[
+            _sound('방 에어컨이 고장 났어요.', '房間的冷氣壞了。', SpeechTag.polite),
+            _sound('화장실에서 뜨거운 물이 안 나와요.', '浴室沒有熱水。', SpeechTag.polite),
+            _sound('수건이 좀 더러워요.', '毛巾有點髒。', SpeechTag.polite),
+            _sound('옆방이 너무 시끄러워요.', '隔壁房間太吵了。', SpeechTag.polite),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u36:drill2',
+          title: '練習・…著（-아/어 있다）',
+          paragraphs: const <String>[
+            '照 -아요/어요 的規則接 있어요：켜져요 → 켜져 있어요、앉아요 → 앉아 있어요。「께서」＝이／가 的尊敬說法，主語是長輩時用。「불」＝燈；「서다」＝站；「할머니」＝奶奶。',
+          ],
+          items: <SoundItem>[
+            _sound('창문이 열려 있어요.', '窗戶開著。', SpeechTag.polite),
+            _sound('방에 들어갔는데 불이 켜져 있었어요.', '我進房間的時候，燈是開著的。', SpeechTag.polite),
+            _sound('방에 불이 꺼져 있어요.', '房間的燈是關著的。', SpeechTag.polite),
+            _sound('문 앞에 사람이 서 있어요.', '門口站著一個人。', SpeechTag.polite),
+            _sound('할머니께서 의자에 앉아 계세요.', '奶奶坐在椅子上。', SpeechTag.honorific),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u36:drill3',
+          title: '練習・請櫃檯處理',
+          paragraphs: const <String>[
+            '「바로」＝馬上。',
+          ],
+          items: <SoundItem>[
+            _sound('사람을 좀 보내 주세요.', '請派人過來一下。', SpeechTag.polite),
+            _sound('다른 방으로 좀 바꿔 주세요.', '請幫我換到別的房間。', SpeechTag.polite),
+            _sound('수건 좀 더 주세요.', '請再給我一些毛巾。', SpeechTag.polite),
+            _sound('네, 바로 고쳐 드릴게요.', '好的，馬上幫您修。', SpeechTag.polite),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u36:dialog',
+          title: '短對話：打電話到櫃檯',
+          paragraphs: const <String>[
+            'A 是住在 805 號房的客人，B 是飯店櫃檯的職員。「805호（팔백오 호）인데요」用 -는데요 先交代自己是誰，等對方回應；「가져다 드리다」＝拿過去給您；「손님」＝客人；「문제」＝問題。先照順序聽一遍，再遮住中文，試著只靠聲音聽懂。',
+          ],
+          items: <SoundItem>[
+            _line('A', '여보세요, 805호인데요.', '喂，我是 805 號房。', SpeechTag.polite),
+            _line('B', '네, 손님. 무슨 문제가 있으세요?', '是的，客人。有什麼問題嗎？', SpeechTag.honorific),
+            _line('A', '에어컨이 고장 났어요. 안 켜져요.', '冷氣壞了，打不開。', SpeechTag.polite),
+            _line('B', '죄송합니다. 바로 사람을 보내 드릴게요.', '很抱歉。馬上派人過去。', SpeechTag.polite),
+            _line('A', '그리고 수건도 좀 더 주세요.', '還有，請再給我一些毛巾。', SpeechTag.polite),
+            _line('B', '네, 같이 가져다 드릴게요.', '好的，一起幫您送過去。', SpeechTag.polite),
+            _line('A', '감사합니다.', '謝謝。', SpeechTag.formal),
+          ],
+        ),
+      ],
+      quizSeeds: _wordSeeds(const <String>[
+        'word:호텔',
+        'word:방',
+        'word:창문',
+        'word:에어컨',
+        'word:수건',
+        'word:고장',
+        'word:켜지다',
+        'word:꺼지다',
+        'word:나오다',
+        'word:고치다',
+        'word:바꾸다',
+        'word:더럽다',
+        'word:시끄럽다',
+      ]),
+    );
+
+Lesson _unitChangePlans() => Lesson(
+      id: 'unit-37',
+      group: LessonGroup.unit,
+      title: '單元 37・請假與改約',
+      summary: '向主管請假、和朋友改約，用 -기로 했어요 說「決定…；說好…」。',
+      cards: <LessonCard>[
+        LessonCard.concept(
+          id: 'u37:goal',
+          title: '這個單元要學會什麼',
+          paragraphs: const <String>[
+            '學會說：「내일 하루 쉬어도 될까요?」（明天可以休息一天嗎？）、「약속을 다음 주로 바꾸기로 했어요.」（說好把約改到下週了。）。',
+            '做法：先認識常用的詞，再練請假、「決定…」的 -기로 했어요，以及改約，最後聽一段和朋友改約的對話。',
+            '每個句子底下都有語氣標籤。半語版放在「半語（額外學習）」。',
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u37:words',
+          title: '先認識這些詞',
+          paragraphs: const <String>[
+            '點每一個聽三次，跟著念。',
+          ],
+          items: <SoundItem>[
+            _sound('회사', '公司'),
+            _sound('과장', '課長'),
+            _sound('휴가', '休假'),
+            _sound('출장', '出差'),
+            _sound('병원', '醫院'),
+            _sound('퇴근', '下班'),
+            _sound('약속', '約定；約會'),
+            _sound('쉬어요', '休息（쉬다）'),
+            _sound('취소해요', '取消（취소하다）'),
+            _sound('결정해요', '決定（결정하다）'),
+          ],
+        ),
+        LessonCard.concept(
+          id: 'u37:pattern',
+          title: '句型：___기로 했어요',
+          paragraphs: const <String>[
+            '「-기로 했어요」＝決定…；說好…：다음 주에 휴가를 가기로 했어요（決定下週去休假）、친구하고 만나기로 했어요（和朋友說好見面）。',
+            '請假要先問：「내일 하루 쉬어도 될까요?」（明天可以休息一天嗎？）-아/어도 될까요? 比 -아/어도 돼요? 更客氣。',
+            '稱呼主管要加 님：과장님、부장님。',
+            '改約時先道歉、再說原因：「미안한데 갑자기 일이 생겨서 약속을 다음 주로 바꿔도 돼요?」（不好意思，突然有事，可以把約改到下週嗎？）',
+          ],
+        ),
+        _grammarCard('giro_haeyo'),
+        LessonCard.sound(
+          id: 'u37:drill1',
+          title: '練習・向主管請假',
+          paragraphs: const <String>[
+            '每句點一下聽，再自己大聲念一次。「푹」＝好好地（休息）；「몸」＝身體。',
+          ],
+          items: <SoundItem>[
+            _sound('과장님, 내일 하루 쉬어도 될까요?', '課長，明天可以休息一天嗎？', SpeechTag.polite),
+            _sound('병원에 가야 해요.', '我得去醫院。', SpeechTag.polite),
+            _sound('몸이 안 좋아서 오늘은 일찍 퇴근해도 될까요?', '身體不舒服，今天可以早點下班嗎？', SpeechTag.polite),
+            _sound('네, 푹 쉬세요.', '好，好好休息吧。', SpeechTag.honorific),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u37:drill2',
+          title: '練習・決定…；說好…（-기로 했어요）',
+          paragraphs: const <String>[
+            '語幹直接接 -기로 했어요，不分有沒有終聲。',
+          ],
+          items: <SoundItem>[
+            _sound('다음 주에 휴가를 가기로 했어요.', '我決定下週去休假。', SpeechTag.polite),
+            _sound('친구하고 토요일에 만나기로 했어요.', '和朋友說好星期六見面。', SpeechTag.polite),
+            _sound('약속을 다음 주로 바꾸기로 했어요.', '我們說好把約改到下週。', SpeechTag.polite),
+            _sound('오늘은 일찍 자기로 했어요.', '我決定今天早點睡。', SpeechTag.polite),
+            _sound('회의를 취소하기로 했어요.', '我們決定取消會議。', SpeechTag.polite),
+            _sound('휴가 날짜를 결정했어요.', '我決定好休假的日期了。', SpeechTag.polite),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u37:drill3',
+          title: '練習・和朋友改約',
+          paragraphs: const <String>[
+            '「갑자기」＝突然；「그날」＝那天。「-기로 해요」＝我們就這樣說好吧。',
+          ],
+          items: <SoundItem>[
+            _sound('미안한데 약속을 다음 주로 바꿔도 돼요?', '不好意思，可以把約改到下週嗎？', SpeechTag.polite),
+            _sound('갑자기 출장을 가야 해요.', '我突然得去出差。', SpeechTag.polite),
+            _sound('그럼 다음 주 금요일은 어때요?', '那下週五怎麼樣？', SpeechTag.polite),
+            _sound('좋아요. 그날 만나기로 해요.', '好啊，那就說好那天見面吧。', SpeechTag.polite),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u37:dialog',
+          title: '短對話：週末的約要改期',
+          paragraphs: const <String>[
+            'A 和朋友 B 原本約這個星期六見面，A 臨時有事。「일이 생기다」＝有事情、出了狀況。先照順序聽一遍，再遮住中文，試著只靠聲音聽懂。',
+          ],
+          items: <SoundItem>[
+            _line('A', '미안한데 토요일 약속을 바꿔도 돼요?', '不好意思，星期六的約可以改期嗎？', SpeechTag.polite),
+            _line('B', '네, 무슨 일 있어요?', '可以，發生什麼事了嗎？', SpeechTag.polite),
+            _line('A', '갑자기 회사에 일이 생겼어요.', '公司突然有事。', SpeechTag.polite),
+            _line('B', '괜찮아요. 그럼 언제가 좋아요?', '沒關係。那什麼時候好呢？', SpeechTag.polite),
+            _line('A', '다음 주 토요일은 어때요?', '下週六怎麼樣？', SpeechTag.polite),
+            _line('B', '좋아요. 그럼 다음 주 토요일에 만나기로 해요.', '好啊。那就說好下週六見面吧。', SpeechTag.polite),
+          ],
+        ),
+      ],
+      quizSeeds: _wordSeeds(const <String>[
+        'word:회사',
+        'word:과장',
+        'word:휴가',
+        'word:출장',
+        'word:병원',
+        'word:퇴근',
+        'word:쉬다',
+        'word:취소하다',
+        'word:결정하다',
+        'word:날짜',
+        'word:몸',
+      ]),
+    );
+
+Lesson _unitMoving() => Lesson(
+      id: 'unit-38',
+      group: LessonGroup.unit,
+      title: '單元 38・找房子、搬家',
+      summary: '在房屋仲介說想找什麼樣的房子，用 -게 되다 說「（因為情況）變成要…」。',
+      cards: <LessonCard>[
+        LessonCard.concept(
+          id: 'u38:goal',
+          title: '這個單元要學會什麼',
+          paragraphs: const <String>[
+            '學會說：「다음 달에 서울로 이사하게 됐어요.」（我下個月要搬到首爾了。）、「역에서 가까운 원룸을 찾고 있어요.」（我在找離車站近的套房。）。',
+            '做法：先認識找房子常用的詞，再練說條件、「變成要…」的 -게 되다，以及做決定，最後聽一段在房屋仲介找房子的對話。',
+            '每個句子底下都有語氣標籤。半語版放在「半語（額外學習）」。',
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u38:words',
+          title: '先認識這些詞',
+          paragraphs: const <String>[
+            '點每一個聽三次，跟著念。',
+          ],
+          items: <SoundItem>[
+            _sound('이사', '搬家'),
+            _sound('집', '家；房子'),
+            _sound('원룸', '套房（單間）'),
+            _sound('기숙사', '宿舍'),
+            _sound('근처', '附近'),
+            _sound('역', '車站'),
+            _sound('계약', '合約；契約'),
+            _sound('가까워요', '近（가깝다）'),
+            _sound('좁아요', '窄（좁다）'),
+            _sound('조용해요', '安靜（조용하다）'),
+          ],
+        ),
+        LessonCard.concept(
+          id: 'u38:pattern',
+          title: '句型：___게 됐어요',
+          paragraphs: const <String>[
+            '「-게 되다」＝不是自己刻意安排，而是因為工作、學校等情況，變成要…：한국에서 일하게 됐어요（我要在韓國工作了）。',
+            '和單元 37 的 -기로 했어요 比較：-기로 했어요 是自己決定的；-게 됐어요 著重「情況使然」。',
+            '說房子的條件：「역에서 가까운 집」（離車站近的房子）、「조용한 집」（安靜的房子），用單元 26 學過的形容詞＋-(으)ㄴ＋名詞。',
+            '問房租：「한 달에 얼마예요?」（一個月多少錢？）決定租下來：「이 집으로 할게요.」（就租這間。）',
+            '韓國租套房通常要先付一筆押金（보증금），每個月再付月租（월세），有的還要付管理費；房屋仲介叫 부동산。實際金額與規定以房東、仲介的說明為準。',
+          ],
+        ),
+        _grammarCard('ge_doeda'),
+        LessonCard.sound(
+          id: 'u38:drill1',
+          title: '練習・說想找的房子',
+          paragraphs: const <String>[
+            '每句點一下聽，再自己大聲念一次。',
+          ],
+          items: <SoundItem>[
+            _sound('학교 근처에 원룸을 찾고 있어요.', '我在找學校附近的套房。', SpeechTag.polite),
+            _sound('역에서 가까워요?', '離車站近嗎？', SpeechTag.polite),
+            _sound('방이 좀 좁은데 조용해요.', '房間有點小，可是很安靜。', SpeechTag.polite),
+            _sound('한 달에 얼마예요?', '一個月多少錢？', SpeechTag.polite),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u38:drill2',
+          title: '練習・變成要…（-게 되다）',
+          paragraphs: const <String>[
+            '語幹直接接 -게 됐어요，不分有沒有終聲。「학기」＝學期；「나가다」＝出去、搬出；「혼자」＝一個人；「이제」＝現在、如今。',
+          ],
+          items: <SoundItem>[
+            _sound('다음 달에 서울로 이사하게 됐어요.', '我下個月要搬到首爾了。', SpeechTag.polite),
+            _sound('일 때문에 부산에서 살게 됐어요.', '因為工作的關係，我要住在釜山了。', SpeechTag.polite),
+            _sound('다음 학기에 기숙사에서 나가게 됐어요.', '下學期我要搬出宿舍了。', SpeechTag.polite),
+            _sound('이제 혼자 살게 됐어요.', '現在變成要一個人住了。', SpeechTag.polite),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u38:drill3',
+          title: '練習・做決定',
+          paragraphs: const <String>[
+            '「-기로 했어요」是單元 37 學過的「決定…」。',
+          ],
+          items: <SoundItem>[
+            _sound('이 집으로 하기로 했어요.', '我決定租這間房子。', SpeechTag.polite),
+            _sound('언제 계약할 수 있어요?', '什麼時候可以簽約？', SpeechTag.polite),
+            _sound('이번 주말에 이사해요.', '這個週末搬家。', SpeechTag.polite),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u38:dialog',
+          title: '短對話：在房屋仲介找房子',
+          paragraphs: const <String>[
+            'A 是要找房子的客人，B 是房屋仲介。「그래서」＝所以。先照順序聽一遍，再遮住中文，試著只靠聲音聽懂。',
+          ],
+          items: <SoundItem>[
+            _line('B', '어서 오세요. 어떤 집을 찾으세요?', '歡迎光臨。您在找什麼樣的房子？', SpeechTag.honorific),
+            _line('A', '이 근처 회사에서 일하게 됐어요. 그래서 원룸을 찾고 있어요.', '我要在這附近的公司工作了，所以在找套房。', SpeechTag.polite),
+            _line('B', '역에서 가까운 집이 좋으세요?', '您想要離車站近的房子嗎？', SpeechTag.honorific),
+            _line('A', '네, 가깝고 조용한 집이 좋아요.', '是的，我想要近又安靜的房子。', SpeechTag.polite),
+            _line('B', '이 집은 좀 좁은데 역에서 아주 가까워요.', '這間有點小，可是離車站非常近。', SpeechTag.polite),
+            _line('A', '좋네요. 한 달에 얼마예요?', '不錯呢。一個月多少錢？', SpeechTag.polite),
+            _line('B', '월세는 오십만 원이에요.', '月租五十萬韓元。', SpeechTag.polite),
+            _line('A', '그럼 이 집으로 할게요.', '那我就租這間。', SpeechTag.polite),
+          ],
+        ),
+      ],
+      quizSeeds: _wordSeeds(const <String>[
+        'word:이사',
+        'word:집',
+        'word:원룸',
+        'word:기숙사',
+        'word:근처',
+        'word:역',
+        'word:계약',
+        'word:가깝다',
+        'word:좁다',
+        'word:조용하다',
+      ]),
+    );
+
+Lesson _unitOpinion() => Lesson(
+      id: 'unit-39',
+      group: LessonGroup.unit,
+      title: '單元 39・說說自己的看法',
+      summary: '和朋友一起挑衣服，用 -(으)ㄴ/는 것 같아요 委婉地說意見和推測，認識 ㅎ 不規則（빨갛다 → 빨개요）。',
+      cards: <LessonCard>[
+        LessonCard.concept(
+          id: 'u39:goal',
+          title: '這個單元要學會什麼',
+          paragraphs: const <String>[
+            '學會說：「파란색이 더 잘 어울리는 것 같아요.」（我覺得藍色比較適合你。）、「하늘이 정말 파래요.」（天空好藍。）。',
+            '做法：先認識顏色和意見的詞，再練顏色（ㅎ 不規則）、「好像…；我覺得…」的 -(으)ㄴ/는 것 같아요，最後聽一段和朋友挑襯衫的對話。',
+            '每個句子底下都有語氣標籤。半語版放在「半語（額外學習）」。',
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u39:words',
+          title: '先認識這些詞',
+          paragraphs: const <String>[
+            '點每一個聽三次，跟著念。',
+          ],
+          items: <SoundItem>[
+            _sound('색깔', '顏色'),
+            _sound('셔츠', '襯衫'),
+            _sound('하늘', '天空'),
+            _sound('얼굴', '臉'),
+            _sound('생각', '想法；思考'),
+            _sound('빨개요', '紅（빨갛다）'),
+            _sound('파래요', '藍（파랗다）'),
+            _sound('하얘요', '白（하얗다）'),
+            _sound('어때요', '怎麼樣（어떻다）'),
+            _sound('어울려요', '適合；相配（어울리다）'),
+          ],
+        ),
+        LessonCard.concept(
+          id: 'u39:pattern',
+          title: '句型：___(으)ㄴ/는 것 같아요',
+          paragraphs: const <String>[
+            '「-(으)ㄴ/는 것 같아요」＝好像…；我覺得…。說意見時用它，比直接說「好」「不好」柔和：이게 더 좋은 것 같아요。',
+            '前面的變化和修飾名詞一樣：動詞現在用 -는（어울리는 것 같아요），形容詞用 -(으)ㄴ（비싼 것 같아요），未來的事用 -(으)ㄹ（추울 것 같아요）。',
+            '顏色的形容詞多半是 ㅎ 不規則：빨갛다 → 빨개요、파랗다 → 파래요、하얗다 → 하얘요；修飾名詞時是 빨간、파란、하얀。',
+            '說自己的意見：「제 생각에는 …」（我覺得…）。同意對方：「저도 그렇게 생각해요.」（我也這麼想。）',
+            '「마음에 들다」＝喜歡、中意；喜歡的東西用 이／가：빨간 가방이 마음에 들어요。',
+          ],
+        ),
+        _grammarCard('geot_gatayo'),
+        _grammarCard('h_irregular'),
+        LessonCard.sound(
+          id: 'u39:drill1',
+          title: '練習・說顏色（ㅎ 不規則）',
+          paragraphs: const <String>[
+            '每句點一下聽，再自己大聲念一次。',
+          ],
+          items: <SoundItem>[
+            _sound('하늘이 정말 파래요.', '天空好藍。', SpeechTag.polite),
+            _sound('얼굴이 빨개요. 괜찮아요?', '你的臉好紅，還好嗎？', SpeechTag.polite),
+            _sound('눈이 정말 하얘요.', '雪好白。', SpeechTag.polite),
+            _sound('이 색깔은 어때요?', '這個顏色怎麼樣？', SpeechTag.polite),
+            _sound('빨간 가방이 마음에 들어요.', '我喜歡紅色的包包。', SpeechTag.polite),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u39:drill2',
+          title: '練習・好像…；我覺得…（-(으)ㄴ/는 것 같아요）',
+          paragraphs: const <String>[
+            '動詞現在 -는、形容詞 -(으)ㄴ、動詞過去 -(으)ㄴ、還沒發生的事 -(으)ㄹ。',
+          ],
+          items: <SoundItem>[
+            _sound('이 색이 더 잘 어울리는 것 같아요.', '我覺得這個顏色比較適合你。', SpeechTag.polite),
+            _sound('이 가방은 좀 비싼 것 같아요.', '這個包包好像有點貴。', SpeechTag.polite),
+            _sound('밖에 비가 오는 것 같아요.', '外面好像在下雨。', SpeechTag.polite),
+            _sound('내일은 추울 것 같아요.', '明天好像會很冷。', SpeechTag.polite),
+            _sound('민수 씨가 벌써 집에 간 것 같아요.', '民秀好像已經回家了。', SpeechTag.polite),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u39:drill3',
+          title: '練習・說意見與同意',
+          paragraphs: const <String>[
+            '「제 생각에는」＝我的想法是；我覺得。「그렇게」＝那樣地。',
+          ],
+          items: <SoundItem>[
+            _sound('제 생각에는 파란색이 더 좋은 것 같아요.', '我覺得藍色比較好。', SpeechTag.polite),
+            _sound('저도 그렇게 생각해요.', '我也這麼想。', SpeechTag.polite),
+            _sound('저는 하얀색이 더 예쁜 것 같아요.', '我覺得白色比較好看。', SpeechTag.polite),
+          ],
+        ),
+        LessonCard.sound(
+          id: 'u39:dialog',
+          title: '短對話：和朋友挑襯衫',
+          paragraphs: const <String>[
+            'A 在挑襯衫，問朋友 B 的意見。「그게」＝그것이（那個）。先照順序聽一遍，再遮住中文，試著只靠聲音聽懂。',
+          ],
+          items: <SoundItem>[
+            _line('A', '이 셔츠 어때요?', '這件襯衫怎麼樣？', SpeechTag.polite),
+            _line('B', '색깔이 너무 빨간 것 같아요.', '顏色好像太紅了。', SpeechTag.polite),
+            _line('A', '그래요? 그럼 이 파란 셔츠는 어때요?', '是嗎？那這件藍色的襯衫呢？', SpeechTag.polite),
+            _line('B', '그게 더 잘 어울리는 것 같아요.', '我覺得那件比較適合你。', SpeechTag.polite),
+            _line('A', '하얀색도 있는데 어때요?', '也有白色的，你覺得怎麼樣？', SpeechTag.polite),
+            _line('B', '하얀색도 예쁜데 파란색이 더 좋은 것 같아요.', '白色也很好看，不過我覺得藍色比較好。', SpeechTag.polite),
+            _line('A', '그럼 파란색으로 살게요.', '那我就買藍色的。', SpeechTag.polite),
+          ],
+        ),
+      ],
+      quizSeeds: _wordSeeds(const <String>[
+        'word:색깔',
+        'word:셔츠',
+        'word:하늘',
+        'word:얼굴',
+        'word:생각',
+        'word:빨갛다',
+        'word:파랗다',
+        'word:하얗다',
+        'word:어떻다',
+        'word:어울리다',
       ]),
     );
 
