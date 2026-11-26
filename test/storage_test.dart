@@ -656,4 +656,26 @@ void main() {
       expect(state.hardWordIds, <String>[w]);
     });
   });
+
+  test('單元說明卡引用的文法點，看過後算學過，會進混合測驗的文法範圍', () {
+    final card = Lessons.units
+        .expand((l) => l.cards)
+        .firstWhere((c) => c.grammarRefs.isNotEmpty);
+    final point = Catalog.grammarPointById(card.grammarRefs.first)!;
+    final state = AppState(
+      repository: MemoryProgressRepository(),
+      data: ProgressData(),
+      clock: () => now,
+    );
+    expect(point.examples, isNotEmpty);
+    expect(state.learnedGrammarExampleIds, isEmpty);
+    state.markLearned(card.id);
+    for (final id in card.grammarRefs) {
+      expect(state.learnedGrammarExampleIds,
+          contains(Catalog.grammarPointById(id)!.exampleId(0)));
+    }
+    final other = Catalog.grammarPoints
+        .firstWhere((p) => !card.grammarRefs.contains(p.id));
+    expect(state.learnedGrammarExampleIds, isNot(contains(other.exampleId(0))));
+  });
 }

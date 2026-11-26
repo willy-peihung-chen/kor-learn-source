@@ -301,12 +301,21 @@ class AppState extends ChangeNotifier {
     return (learned: learned, total: ids.length);
   }
 
-  /// 已學過（看過說明卡）的文法點所包含的例句 id，混合測驗用。
-  List<String> get learnedGrammarExampleIds => <String>[
-        for (final point in Catalog.grammarPoints)
-          if (_data.learnedItems.contains(point.cardId))
-            for (var i = 0; i < point.examples.length; i++) point.exampleId(i),
-      ];
+  /// 已學過的文法點所包含的例句 id，混合測驗用。
+  /// 「學過」包含：看過基礎文法課的文法卡，或看過單元裡引用這個文法點的說明卡。
+  List<String> get learnedGrammarExampleIds {
+    final learned = _data.learnedItems;
+    final pointIds = <String>{
+      for (final lesson in Lessons.all)
+        for (final card in lesson.cards)
+          if (learned.contains(card.id)) ...card.grammarPointIds,
+    };
+    return <String>[
+      for (final point in Catalog.grammarPoints)
+        if (learned.contains(point.cardId) || pointIds.contains(point.id))
+          for (var i = 0; i < point.examples.length; i++) point.exampleId(i),
+    ];
+  }
 
   /// 尚未到期的卡片中，最早的下次複習時間；沒有時為 null。
   DateTime? get nextDueAt => nextDueAtOf(null);

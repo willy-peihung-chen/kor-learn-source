@@ -68,10 +68,11 @@ class QuizGenerator {
     return buildAll(pool.take(count));
   }
 
-  /// 混合測驗：字母、音節、單字、文法隨機抽題，題目不重複。
+  /// 混合測驗：單字與文法（基礎文法課與單元學過的文法卡）隨機抽題，題目不重複。
+  /// 字母與音節題不放進混合測驗（字母課的課後小測驗與錯題本仍會出）。
   ///
   /// [wordIds]、[grammarExampleIds] 限制單字與文法題的出題範圍；
-  /// 不給（null）代表全部教材，給空清單代表不出這類題目。
+  /// 不給（null）代表全部教材，給空清單代表不出這類題目；兩者都空時回傳空清單。
   List<QuizQuestion> mixed({
     int count = 10,
     Iterable<String>? wordIds,
@@ -95,10 +96,6 @@ class QuizGenerator {
 
     // 重複放入的題型代表被抽到的機會較高。
     final kinds = <QuizKind>[
-      QuizKind.letterRoman,
-      QuizKind.letterName,
-      QuizKind.syllableRoman,
-      QuizKind.syllableFromRoman,
       if (words.isNotEmpty) ...<QuizKind>[
         QuizKind.wordMeaning,
         QuizKind.wordMeaning,
@@ -111,6 +108,9 @@ class QuizGenerator {
         QuizKind.grammarCloze,
       ],
     ];
+    if (kinds.isEmpty) {
+      return <QuizSeed>[];
+    }
 
     final seen = <String>{};
     final seeds = <QuizSeed>[];

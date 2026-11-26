@@ -573,24 +573,27 @@ void main() {
   });
 
   group('混合測驗的範圍', () {
-    test('單字與文法清單都是空的時，只出字母與音節題', () {
+    test('單字與文法清單都是空的時，不出題', () {
       final seeds = generator.randomSeeds(
         count: 20,
         wordIds: const <String>[],
         grammarExampleIds: const <String>[],
       );
-      expect(seeds.length, 20);
-      for (final seed in seeds) {
-        expect(
-          <QuizKind>{
-            QuizKind.letterRoman,
-            QuizKind.letterName,
-            QuizKind.syllableRoman,
-            QuizKind.syllableFromRoman,
-          }.contains(seed.kind),
-          isTrue,
-          reason: seed.key,
-        );
+      expect(seeds, isEmpty);
+    });
+
+    test('混合測驗不出字母與音節題', () {
+      const letterKinds = <QuizKind>{
+        QuizKind.letterRoman,
+        QuizKind.letterName,
+        QuizKind.syllableRoman,
+        QuizKind.syllableFromRoman,
+        QuizKind.listenSyllable,
+      };
+      for (var i = 0; i < 5; i++) {
+        for (final seed in generator.randomSeeds(count: 30)) {
+          expect(letterKinds.contains(seed.kind), isFalse, reason: seed.key);
+        }
       }
     });
 

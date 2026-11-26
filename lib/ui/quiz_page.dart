@@ -50,6 +50,8 @@ class _QuizHomePageState extends State<QuizHomePage> {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
     final mistakes = state.mistakeSeeds;
+    final learnedGrammar = state.learnedGrammarExampleIds;
+    final canMix = state.learnedWordCount > 0 || learnedGrammar.isNotEmpty;
 
     return PageBody(
       children: <Widget>[
@@ -62,20 +64,24 @@ class _QuizHomePageState extends State<QuizHomePage> {
               Text('混合測驗', style: theme.textTheme.titleMedium),
               const SizedBox(height: 4),
               Text(
-                '從韓文字母、音節，以及你已經複習過的單字、已學過的文法中隨機抽 10 題。'
-                '（已複習單字 ${state.learnedWordCount} 個）',
+                canMix
+                    ? '從你已經複習過的單字，以及在基礎文法課、單元學習學過的文法中隨機抽 10 題。'
+                        '（已複習單字 ${state.learnedWordCount} 個）'
+                    : '先複習幾個單字，或學完一課基礎文法／一個單元，就可以開始混合測驗。',
                 style: theme.textTheme.bodyMedium?.copyWith(color: muted),
               ),
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: () => _open(
-                  '混合測驗',
-                  state.quiz.mixed(
-                    count: 10,
-                    wordIds: state.learnedWordIds,
-                    grammarExampleIds: state.learnedGrammarExampleIds,
-                  ),
-                ),
+                onPressed: canMix
+                    ? () => _open(
+                          '混合測驗',
+                          state.quiz.mixed(
+                            count: 10,
+                            wordIds: state.learnedWordIds,
+                            grammarExampleIds: learnedGrammar,
+                          ),
+                        )
+                    : null,
                 child: const Text('開始測驗'),
               ),
             ],
