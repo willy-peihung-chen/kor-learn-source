@@ -1,13 +1,18 @@
 import 'content_models.dart';
+import 'essential_words.dart';
 import 'late_words.dart';
 import 'word_level_data.dart';
 
 /// 單字的常用程度，依國立國語院「한국어 학습용 어휘 목록」的等級（1 級最常用）。
 ///
-/// 分四組：詞表 1 級、詞表 2 級，以及「其他」（詞表 3 級，或詞表沒有列出的字，
-/// 例如問候語、片語和一些較新的外來語）。「其他」不代表不重要，只是沒有官方等級可以依據。
-/// 最後是「較少用」：日常比較少聽到的字（見 [lateWordHangul]），不管詞表等級，一律排在最後。
+/// 分五組，順序就是學新字的順序：
+/// 「基本用語」（編輯挑選的問候、道謝、請求等固定說法，見 [essentialWordHangul]；
+/// 詞表不收這類說法，所以沒有官方等級）、詞表 1 級、詞表 2 級、
+/// 「其他」（詞表 3 級，或詞表沒有列出的字，例如片語和一些較新的外來語；不代表不重要，
+/// 只是沒有官方等級可以依據），最後是「較少用」：日常比較少聽到的字（見 [lateWordHangul]），
+/// 不管詞表等級，一律排在最後。
 enum WordLevel {
+  essential('基本用語', '問候與日常最先用到的說法（編輯挑選，非官方分級）'),
   level1('1 級', '最常用'),
   level2('2 級', '常用'),
   other('其他', '詞表 3 級或詞表沒有的字'),
@@ -19,11 +24,15 @@ enum WordLevel {
   final String hint;
 }
 
-/// [word] 的常用程度；在 [lateWordHangul] 的字是 [WordLevel.later]，
+/// [word] 的常用程度：在 [lateWordHangul] 的字是 [WordLevel.later]，
+/// 在 [essentialWordHangul] 的字是 [WordLevel.essential]，
 /// 其餘依國語院詞表的等級，詞表 3 級與沒有列出的字都是 [WordLevel.other]。
 WordLevel wordLevelOf(WordItem word) {
   if (lateWordHangul.contains(word.hangul)) {
     return WordLevel.later;
+  }
+  if (essentialWordHangul.contains(word.hangul)) {
+    return WordLevel.essential;
   }
   switch (wordLevelData[word.hangul]) {
     case 1:
@@ -43,7 +52,7 @@ class LevelGroup {
   final List<WordItem> words;
 }
 
-/// 把單字依等級分成 1 級、2 級、其他三段（空的段落省略）；段落內維持原本順序。
+/// 把單字依等級分段（空的段落省略）；段落內維持原本順序。
 List<LevelGroup> groupByLevel(List<WordItem> words) {
   return <LevelGroup>[
     for (final level in WordLevel.values)
@@ -55,39 +64,21 @@ List<LevelGroup> groupByLevel(List<WordItem> words) {
   ];
 }
 
-/// 以片語和禮貌用語為主的主題（問候語、禮貌與敬語）：詞表大多沒收，依等級分段沒有意義。
-/// 這些主題在主題頁不分段、照原順序，全部複習時也排在最前面。
-const Set<String> phraseTopicIds = <String>{'greetings', 'polite'};
-
-bool isPhraseTopic(WordTopic topic) => phraseTopicIds.contains(topic.id);
-
-/// 主題頁要顯示的段落：片語主題只有一段（照原順序），其他主題依等級分段。
-List<LevelGroup> levelGroupsOf(WordTopic topic) {
-  if (isPhraseTopic(topic)) {
-    // 只有一段時畫面不顯示等級標題，這裡的等級不會被用到。
-    return <LevelGroup>[LevelGroup(WordLevel.other, topic.words)];
-  }
-  return groupByLevel(topic.words);
-}
+/// 主題頁要顯示的段落：每個主題都依等級分段，段落內維持主題原本的順序。
+List<LevelGroup> levelGroupsOf(WordTopic topic) => groupByLevel(topic.words);
 
 /// 一個主題學新字的順序，和主題頁畫面上的順序相同。
 List<WordItem> studyOrderOf(WordTopic topic) => <WordItem>[
       for (final group in levelGroupsOf(topic)) ...group.words,
     ];
 
-/// 全部主題一起學新字的順序：片語主題先（照原順序），
-/// 其餘單字依 1 級、2 級、其他排列，同一級內維持主題順序。
+/// 全部主題一起學新字的順序：全部單字依等級排列
+/// （基本用語、1 級、2 級、其他、較少用），同一級內維持主題順序。
 List<WordItem> globalStudyOrder(List<WordTopic> topics) {
-  final phrases = <WordItem>[
-    for (final topic in topics)
-      if (isPhraseTopic(topic)) ...topic.words,
-  ];
-  final others = <WordItem>[
-    for (final topic in topics)
-      if (!isPhraseTopic(topic)) ...topic.words,
+  final all = <WordItem>[
+    for (final topic in topics) ...topic.words,
   ];
   return <WordItem>[
-    ...phrases,
-    for (final group in groupByLevel(others)) ...group.words,
+    for (final group in groupByLevel(all)) ...group.words,
   ];
 }

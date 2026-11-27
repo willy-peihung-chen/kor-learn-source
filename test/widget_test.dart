@@ -390,7 +390,7 @@ void main() {
     final topic = Catalog.topics.first;
     await tester.tap(find.text(topic.title));
     await tester.pumpAndSettle();
-    // 頁面上最先看到的是第一段的第一個單字（片語主題不分段）。
+    // 頁面上最先看到的是第一段的第一個單字（依等級分段）。
     final shown = levelGroupsOf(topic).first.words.first;
     expect(find.text(shown.hangul), findsWidgets);
     expect(tester.takeException(), isNull);

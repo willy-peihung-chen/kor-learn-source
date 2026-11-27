@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hangul_app/data/catalog.dart';
 import 'package:hangul_app/data/content_models.dart';
+import 'package:hangul_app/data/essential_words.dart';
 import 'package:hangul_app/data/late_words.dart';
 import 'package:hangul_app/data/topic_groups.dart';
 import 'package:hangul_app/data/word_level_data.dart';
@@ -19,20 +20,21 @@ void main() {
       }
     });
 
-    test('「較少用」名單：每一個都是單字庫裡唯一的字，不在片語主題裡', () {
+    test('「較少用」名單：每一個都是單字庫裡唯一的字', () {
       for (final hangul in lateWordHangul) {
         final matches = Catalog.words.where((w) => w.hangul == hangul).toList();
         expect(matches.length, 1, reason: '$hangul 必須剛好在單字庫出現一次');
         expect(wordLevelOf(matches.first), WordLevel.later, reason: hangul);
-        final topic = Catalog.topics.firstWhere(
-            (t) => t.words.any((w) => w.hangul == hangul));
-        expect(isPhraseTopic(topic), isFalse, reason: hangul);
       }
-      // 禮貌與敬語主題裡的字不能被往後排。
-      final polite = Catalog.topicById('polite')!;
-      for (final word in polite.words) {
-        expect(lateWordHangul.contains(word.hangul), isFalse,
-            reason: word.hangul);
+    });
+
+    test('「基本用語」名單：每一個都是單字庫裡唯一的字，而且不在詞表、也不在較少用', () {
+      for (final hangul in essentialWordHangul) {
+        final matches = Catalog.words.where((w) => w.hangul == hangul).toList();
+        expect(matches.length, 1, reason: '$hangul 必須剛好在單字庫出現一次');
+        expect(wordLevelOf(matches.first), WordLevel.essential, reason: hangul);
+        expect(wordLevelData.containsKey(hangul), isFalse, reason: hangul);
+        expect(lateWordHangul.contains(hangul), isFalse, reason: hangul);
       }
     });
 
@@ -41,11 +43,13 @@ void main() {
       expect(wordLevelOf(_word('가다')), WordLevel.level1);
       final groups = groupByLevel(<WordItem>[
         _word('그녀'),
-        _word('안녕하세요'),
+        _word('예의'),
         _word('가격'),
         _word('가다'),
+        _word('안녕하세요'),
       ]);
       expect(groups.map((g) => g.level).toList(), <WordLevel>[
+        WordLevel.essential,
         WordLevel.level1,
         WordLevel.level2,
         WordLevel.other,
@@ -56,11 +60,13 @@ void main() {
     test('已知的字落在正確的等級', () {
       expect(wordLevelOf(_word('가다')), WordLevel.level1);
       expect(wordLevelOf(_word('가격')), WordLevel.level2);
-      // 問候語不在詞表裡，歸「其他」。
-      expect(wordLevelOf(_word('안녕하세요')), WordLevel.other);
+      // 問候語不在詞表裡，是編輯挑選的「基本用語」；非固定說法的詞表外單字歸「其他」。
+      expect(wordLevelOf(_word('안녕하세요')), WordLevel.essential);
+      expect(wordLevelOf(_word('예의')), WordLevel.other);
+      expect(wordLevelOf(_word('여쭙다')), WordLevel.later);
     });
 
-    test('三組加起來剛好是全部單字，而且 1 級、2 級都有字', () {
+    test('各組加起來剛好是全部單字，而且 1 級、2 級都有字', () {
       var total = 0;
       final counts = <WordLevel, int>{};
       for (final group in groupByLevel(Catalog.words)) {
@@ -71,13 +77,14 @@ void main() {
       expect(counts[WordLevel.level1], greaterThan(500));
       expect(counts[WordLevel.level2], greaterThan(300));
       expect(counts[WordLevel.other], greaterThan(0));
+      expect(counts[WordLevel.essential], essentialWordHangul.length);
     });
   });
 
   group('依等級分組', () {
-    test('段落依 1 級、2 級、其他排列，空的段落省略，段落內維持原順序', () {
+    test('段落依等級排列，空的段落省略，段落內維持原順序', () {
       final words = <WordItem>[
-        _word('안녕하세요'),
+        _word('예의'),
         _word('가격'),
         _word('가다'),
         _word('오다'),
@@ -97,41 +104,44 @@ void main() {
     });
   });
 
-  group('片語主題與學習順序', () {
-    test('問候語主題不分段，照原順序；一般主題依等級分段', () {
-      final greetings = Catalog.topicById('greetings')!;
-      expect(isPhraseTopic(greetings), isTrue);
-      expect(levelGroupsOf(greetings).length, 1);
-      expect(studyOrderOf(greetings), greetings.words);
-
-      final verbs = Catalog.topicById('verbs_move')!;
-      expect(isPhraseTopic(verbs), isFalse);
-      expect(studyOrderOf(verbs),
-          <WordItem>[for (final g in groupByLevel(verbs.words)) ...g.words]);
+  group('學習順序', () {
+    test('每個主題都依等級分段，段落內維持主題原本的順序', () {
+      for (final topic in Catalog.topics) {
+        final groups = levelGroupsOf(topic);
+        expect(groups.map((g) => g.words.length).fold<int>(0, (a, b) => a + b),
+            topic.words.length, reason: topic.id);
+        var last = -1;
+        for (final group in groups) {
+          expect(group.level.index, greaterThan(last), reason: topic.id);
+          last = group.level.index;
+          final positions = group.words.map(topic.words.indexOf).toList();
+          expect(positions, <int>[...positions]..sort(), reason: topic.id);
+        }
+        expect(studyOrderOf(topic).toSet().length, topic.words.length);
+      }
     });
 
-    test('全部的學習順序：每個字剛好一次，片語主題在最前面，其餘等級不倒退', () {
+    test('問候語與禮貌與敬語主題也分段：基本用語在前、較少用在最後', () {
+      final polite = Catalog.topicById('polite')!;
+      final groups = levelGroupsOf(polite);
+      expect(groups.first.level, WordLevel.essential);
+      expect(groups.last.level, WordLevel.later);
+      expect(groups.last.words.map((w) => w.hangul),
+          containsAll(<String>['여쭙다', '진지', '웃어른']));
+    });
+
+    test('全部的學習順序：每個字剛好一次，等級不倒退', () {
       final order = globalStudyOrder(Catalog.topics);
       expect(order.length, Catalog.words.length);
       expect(order.map((w) => w.id).toSet().length, Catalog.words.length);
-      final greetings = Catalog.topicById('greetings')!;
-      final polite = Catalog.topicById('polite')!;
-      expect(order.take(greetings.words.length), greetings.words);
-      expect(order.skip(greetings.words.length).take(polite.words.length),
-          polite.words);
       var last = 0;
-      final phraseCount = greetings.words.length + polite.words.length;
-      for (final word in order.skip(phraseCount)) {
+      for (final word in order) {
         final rank = wordLevelOf(word).index;
         expect(rank, greaterThanOrEqualTo(last), reason: word.id);
         last = rank;
       }
-    });
-
-    test('片語主題的 id 都存在', () {
-      for (final id in phraseTopicIds) {
-        expect(Catalog.topicById(id), isNotNull, reason: id);
-      }
+      expect(wordLevelOf(order.first), WordLevel.essential);
+      expect(wordLevelOf(order.last), WordLevel.later);
     });
   });
 

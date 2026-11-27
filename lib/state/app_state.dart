@@ -124,7 +124,7 @@ class AppState extends ChangeNotifier {
         : topic.words.map((w) => w.id).toList();
   }
 
-  /// 全部主題學新字的順序（片語主題先，其餘依等級）；只算一次。
+  /// 全部主題學新字的順序（依等級，基本用語先）；只算一次。
   late final List<String> _globalStudyIds =
       globalStudyOrder(Catalog.topics).map((w) => w.id).toList();
 

@@ -1,7 +1,7 @@
 import '../content_models.dart';
 
 // 「禮貌與敬語」：和韓國人說話時最需要的禮貌用語與敬語詞。
-// 屬於片語型主題（見 word_levels.dart 的 phraseTopicIds），新字排在問候語之後最先學。
+// 和其他主題一樣依等級分段；常用的固定說法在「基本用語」，敬語專用的少用字在「較少用」。
 // 其中 12 個字是從原本的主題搬來的；字的 id 不變，學習紀錄不受影響。
 const WordTopic topicPolite = WordTopic(
   id: 'polite',

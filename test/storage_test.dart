@@ -199,7 +199,7 @@ void main() {
       await state.flush();
     });
 
-    test('新單字的順序：全部時問候語先、其餘依等級；主題時和主題頁相同', () async {
+    test('新單字的順序：全部時依等級（基本用語先）；主題時和主題頁相同', () async {
       final repo = await newRepository();
       final state = await AppState.load(repo, clock: () => now);
 
@@ -207,17 +207,14 @@ void main() {
       final expected = globalStudyOrder(Catalog.topics).map((w) => w.id);
       expect(all, expected.toList());
       expect(all.length, Catalog.words.length);
-      // 片語型主題（問候語、禮貌與敬語）排最前面，接著第一個其他字是 1 級。
-      final greetings = Catalog.topicById('greetings')!;
-      final polite = Catalog.topicById('polite')!;
-      expect(all.take(greetings.words.length),
-          greetings.words.map((w) => w.id));
-      expect(
-          all.skip(greetings.words.length).take(polite.words.length),
-          polite.words.map((w) => w.id));
-      final phraseCount = greetings.words.length + polite.words.length;
-      expect(wordLevelOf(Catalog.wordById(all[phraseCount])!),
-          WordLevel.level1);
+      // 「基本用語」排最前面，接著是 1 級。
+      final firstLevels = all.map((id) => wordLevelOf(Catalog.wordById(id)!));
+      expect(firstLevels.first, WordLevel.essential);
+      var rank = 0;
+      for (final level in firstLevels) {
+        expect(level.index, greaterThanOrEqualTo(rank));
+        rank = level.index;
+      }
       // 「較少用」的字排在最後。
       expect(wordLevelOf(Catalog.wordById(all.last)!), WordLevel.later);
 
