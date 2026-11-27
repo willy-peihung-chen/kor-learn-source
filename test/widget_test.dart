@@ -277,7 +277,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('單字複習：最後一張答錯留到下一輪；新字額度用完後可以「今天再多學」', (tester) async {
+  testWidgets('單字複習：最後一張答錯可以現在繼續練；新字額度用完後可以「今天再多學」', (tester) async {
     const size = Size(360, 740);
     final state = await _pumpApp(tester, size);
     final queue = state.buildReviewQueue();
@@ -291,13 +291,27 @@ void main() {
       await tester.tap(find.text(last ? '不熟悉' : '普通'));
       await tester.pumpAndSettle();
     }
-    // 最後一張答錯：不馬上重出，結束畫面說明。
+    // 最後一張答錯：不馬上重出，結束畫面說明在等的卡，並可以選擇馬上繼續練
+    // （有等待中的卡時，不再另外重複顯示「是這一輪的最後一張」那段）。
     expect(find.textContaining('本輪完成，共複習 ${queue.length} 個單字'),
         findsOneWidget);
-    expect(find.textContaining('是這一輪的最後一張'), findsOneWidget);
+    expect(find.textContaining('還有 1 張剛答錯的卡在等'), findsOneWidget);
+    expect(find.textContaining('是這一輪的最後一張'), findsNothing);
     expect(find.textContaining('今天的 ${AppState.newWordsPerDay} 個新單字已經學完'),
         findsOneWidget);
     expect(state.newWordsLeftToday, 0);
+
+    // 不想等 10 分鐘：按「現在繼續練」，用那一張卡開一輪新的。
+    await tester.ensureVisible(find.text('現在繼續練'));
+    await tester.tap(find.text('現在繼續練'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('第 1 / 1 張'), findsOneWidget);
+    await tester.tap(find.text('顯示意思'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('普通'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('本輪完成，共複習 1 個單字'), findsOneWidget);
+    expect(find.text('現在繼續練'), findsNothing);
 
     await tester.tap(find.text('今天再多學 ${AppState.extraNewWordsStep} 個'));
     await tester.pumpAndSettle();

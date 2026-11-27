@@ -260,6 +260,16 @@ class AppState extends ChangeNotifier {
         now: now,
       ).length;
 
+  /// 指定主題（null 代表全部）剛答錯、還在等 10 分鐘的卡（卡片 id）。
+  /// 複習頁在「沒有到期卡」時讓使用者選擇馬上繼續練。
+  List<String> relearningCardIds({String? topicId}) =>
+      TwoWayQueue.relearningCardIds(
+        wordIds: _wordIdsOf(topicId),
+        forward: _data.reviews,
+        reverse: _data.reverseReviews,
+        now: now,
+      );
+
   int get newWordCount =>
       ReviewQueue.newIds(itemIds: _wordIds, states: _data.reviews).length;
 

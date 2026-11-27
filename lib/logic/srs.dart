@@ -380,6 +380,46 @@ class TwoWayQueue {
     return cards.map((c) => c.id).toList();
   }
 
+  /// 剛答錯、正在等 [Srs.relearnDelay] 的卡（還沒到期，兩個方向都算），
+  /// 最早到期的先。用在使用者不想等、要馬上把答錯的卡練完時；
+  /// 只認「剛答錯」（[Srs.recentWindow] 內、次數歸零），不會把一般排程中的卡提早叫出來。
+  /// 正常流程不會兩個方向同時在等（另一個方向會被擋住）；這裡不另外防呆。
+  static List<String> relearningCardIds({
+    required Iterable<String> wordIds,
+    required Map<String, ReviewState> forward,
+    required Map<String, ReviewState> reverse,
+    required DateTime now,
+  }) {
+    bool waiting(ReviewState? s) =>
+        s != null &&
+        s.repetitions == 0 &&
+        s.lapses > 0 &&
+        !s.isDue(now) &&
+        now.difference(s.lastReviewedAt) < Srs.recentWindow;
+
+    final cards = <({String id, DateTime dueAt, int order})>[];
+    var order = 0;
+    for (final wordId in wordIds) {
+      if (waiting(forward[wordId])) {
+        cards.add((id: wordId, dueAt: forward[wordId]!.dueAt, order: order));
+      }
+      order++;
+      if (waiting(reverse[wordId])) {
+        cards.add((
+          id: CardId.reverse(wordId),
+          dueAt: reverse[wordId]!.dueAt,
+          order: order,
+        ));
+      }
+      order++;
+    }
+    cards.sort((a, b) {
+      final byDue = a.dueAt.compareTo(b.dueAt);
+      return byDue != 0 ? byDue : a.order.compareTo(b.order);
+    });
+    return cards.map((c) => c.id).toList();
+  }
+
   /// 可以開啟的中文→韓文卡（卡片 id），依 [wordIds] 的順序。
   static List<String> newReverseCardIds({
     required Iterable<String> wordIds,

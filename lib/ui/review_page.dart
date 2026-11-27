@@ -86,6 +86,22 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
     });
   }
 
+  /// 不想等 10 分鐘：把剛答錯、還在等的卡拿來馬上繼續練。
+  void _practiceWaiting() {
+    final state = AppScope.of(context);
+    final ids = state.relearningCardIds(topicId: widget.topic?.id);
+    if (ids.isEmpty) {
+      // 停在結束畫面太久，那些卡已經到期了：重新組一輪（沒有卡時會回到正確的結束畫面）。
+      _restart();
+      return;
+    }
+    setState(() {
+      _round = ReviewRound(ids);
+      _revealed = false;
+      _browse = null;
+    });
+  }
+
   void _addExtraNewWords() {
     AppScope.of(context).addExtraNewWordsToday();
     _restart();
@@ -444,10 +460,16 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
     final canAddExtra = state.canAddExtraNewWordsOf(topicId);
 
     final unlockLeft = state.unlockableReverseCardIds(topicId: topicId).length;
+    final waitingLeft = state.relearningCardIds(topicId: topicId).length;
 
     final notes = <String>[
-      for (final id in _round.deferredIds)
-        '「${Catalog.wordById(CardId.wordIdOf(id))?.hangul ?? id}」'
+      if (waitingLeft > 0)
+        '還有 $waitingLeft 張剛答錯的卡在等 ${Srs.relearnDelay.inMinutes} 分鐘，'
+            '不想等可以按「現在繼續練」（隔幾分鐘再練效果比較好）。',
+      // 剛答錯的卡正在等時，上面那句已經說明了，不重複。
+      if (waitingLeft == 0)
+        for (final id in _round.deferredIds)
+          '「${Catalog.wordById(CardId.wordIdOf(id))?.hangul ?? id}」'
             '${CardId.isReverse(id) ? '（中文→韓文）' : ''}是這一輪的最後一張，答錯後先不馬上重出；'
             '${Srs.relearnDelay.inMinutes} 分鐘後到期，到時在單字頁按「開始複習」就會出現。',
       if (dueLeft > 0)
@@ -476,9 +498,11 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
                 _round.ratedCount > 0
                     ? '本輪完成，共複習 ${_round.wordCount} 個單字'
                         '${_round.ratedCount > _round.wordCount ? '（答錯的重做過，共評 ${_round.ratedCount} 次）' : ''}。'
-                    : (widget.topic == null
-                        ? '目前沒有需要複習的單字。'
-                        : '這個主題目前沒有需要複習的單字。'),
+                    : (waitingLeft > 0
+                        ? '目前沒有到期的卡，但還有剛答錯的卡沒練完。'
+                        : (widget.topic == null
+                            ? '目前沒有需要複習的單字。'
+                            : '這個主題目前沒有需要複習的單字。')),
                 style: theme.textTheme.titleMedium,
               ),
               for (final note in notes) ...<Widget>[
@@ -504,6 +528,16 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
                     FilledButton(
                       onPressed: _restart,
                       child: const Text('再來一輪'),
+                    ),
+                  if (waitingLeft > 0 && hasMore)
+                    FilledButton.tonal(
+                      onPressed: _practiceWaiting,
+                      child: const Text('現在繼續練'),
+                    )
+                  else if (waitingLeft > 0)
+                    FilledButton(
+                      onPressed: _practiceWaiting,
+                      child: const Text('現在繼續練'),
                     ),
                   if (canAddExtra)
                     FilledButton.tonal(

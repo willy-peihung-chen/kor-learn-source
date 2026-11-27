@@ -576,6 +576,47 @@ void main() {
       );
     });
 
+    test('剛答錯、還在等 10 分鐘的卡可以馬上練；一般排程中的卡不會被提早叫出來', () {
+      const minute = Duration(minutes: 1);
+      final forward = <String, ReviewState>{
+        // a：3 分鐘前答錯，7 分鐘後到期 → 等待中。
+        'a': st('a', interval: 0, repetitions: 0, lapses: 1,
+            dueAt: now.add(minute * 7), last: now.subtract(minute * 3)),
+        // b：已經到期的重做 → 由 buildReviewQueue 負責，不算等待中。
+        'b': st('b', interval: 0, repetitions: 0, lapses: 1,
+            dueAt: now.subtract(minute), last: now.subtract(minute * 11)),
+        // c：一般排程（答對過、2 天後到期）→ 不能提早。
+        'c': st('c', interval: 3, dueAt: later, last: yesterday),
+        // d：3 小時前答錯、還沒到期（不會發生，防呆）→ 超過 2 小時範圍不算。
+        'd': st('d', interval: 0, repetitions: 0, lapses: 1,
+            dueAt: now.add(minute), last: now.subtract(const Duration(hours: 3))),
+      };
+      final reverse = <String, ReviewState>{
+        // a 的中文→韓文也在等，而且比 a 更早到期。
+        'a': st('a', interval: 0, repetitions: 0, lapses: 1,
+            dueAt: now.add(minute * 2), last: now.subtract(minute * 8)),
+      };
+      expect(
+        TwoWayQueue.relearningCardIds(
+          wordIds: <String>['a', 'b', 'c', 'd'],
+          forward: forward,
+          reverse: reverse,
+          now: now,
+        ),
+        <String>[CardId.reverse('a'), 'a'],
+      );
+      // 沒有等待中的卡時為空。
+      expect(
+        TwoWayQueue.relearningCardIds(
+          wordIds: <String>['b', 'c'],
+          forward: forward,
+          reverse: <String, ReviewState>{},
+          now: now,
+        ),
+        isEmpty,
+      );
+    });
+
     test('被擋住的卡下次時間算成明天 0 點；沒有排定時為 null', () {
       final forward = <String, ReviewState>{
         'a': st('a', interval: 7, dueAt: past, last: yesterday),
