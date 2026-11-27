@@ -276,7 +276,11 @@ class _QuizSessionPageState extends State<QuizSessionPage> {
     });
   }
 
-  void _next(AppState state) {
+  void _next(AppState state, int index) {
+    // 連按兩下時第二下不算（避免跳過一題或重複記錄成績）。
+    if (_finished || index != _index) {
+      return;
+    }
     if (_index + 1 >= widget.questions.length) {
       state.finishQuiz(widget.title, _correctCount, widget.questions.length);
       setState(() => _finished = true);
@@ -323,6 +327,8 @@ class _QuizSessionPageState extends State<QuizSessionPage> {
     final question = widget.questions[_index];
     final answered = _selected != null;
     final isLast = _index + 1 >= widget.questions.length;
+    // 在畫面建立時記下題號，按鈕用這個值，連按時第二下會被擋掉。
+    final shownIndex = _index;
 
     return Column(
       children: <Widget>[
@@ -331,6 +337,8 @@ class _QuizSessionPageState extends State<QuizSessionPage> {
         ),
         Expanded(
           child: PageBody(
+            // 換題時重新建立捲動區，從頂端開始顯示。
+            key: ValueKey<int>(_index),
             children: <Widget>[
               Text(
                 '第 ${_index + 1} / ${widget.questions.length} 題・${question.kind.label}',
@@ -360,7 +368,10 @@ class _QuizSessionPageState extends State<QuizSessionPage> {
                         child: Text(
                           question.stimulus!,
                           style: hangulStyle(
-                            question.kind == QuizKind.grammarCloze ? 28 : 64,
+                            question.kind == QuizKind.grammarCloze ||
+                                    question.kind == QuizKind.meaningWord
+                                ? 28
+                                : 64,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -370,16 +381,8 @@ class _QuizSessionPageState extends State<QuizSessionPage> {
                         const SizedBox(width: 4),
                         SpeakButton(text: question.stimulus!, tooltip: '朗讀單字'),
                       ],
-                      // 文法填空：一開始就能聽整句（朗讀的是完整句子）。
-                      if (question.kind == QuizKind.grammarCloze &&
-                          question.speakText != null) ...<Widget>[
-                        const SizedBox(width: 4),
-                        SpeakButton(
-                          text: question.speakText!,
-                          tooltip: '朗讀例句',
-                          iconSize: 24,
-                        ),
-                      ],
+                      // 文法填空作答前不放朗讀：朗讀的是填好答案的完整句子，等於直接聽到答案。
+                      // 作答後下方有「朗讀例句」可以聽。
                     ],
                   ),
                 ),
@@ -423,7 +426,7 @@ class _QuizSessionPageState extends State<QuizSessionPage> {
                 ),
                 const SizedBox(height: 16),
                 FilledButton(
-                  onPressed: () => _next(state),
+                  onPressed: () => _next(state, shownIndex),
                   child: Text(isLast ? '查看結果' : '下一題'),
                 ),
               ],

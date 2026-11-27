@@ -88,7 +88,15 @@ class HomePage extends StatelessWidget {
           detail: reviewParts.isEmpty ? '目前沒有待複習的項目。' : reviewParts.join('、'),
           done: state.didToday('review'),
           actionLabel: '去複習',
-          onPressed: () => onNavigate(2),
+          // 只剩錯題時，錯題本在測驗頁。
+          onPressed: () => onNavigate(
+            due == 0 &&
+                    state.newWordsAvailable == 0 &&
+                    state.newReverseReadyCount == 0 &&
+                    mistakes > 0
+                ? 3
+                : 2,
+          ),
         ),
         const SizedBox(height: 8),
         FilledButton.icon(

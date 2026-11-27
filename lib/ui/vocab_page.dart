@@ -173,7 +173,7 @@ class _TopicCard extends StatelessWidget {
   }
 }
 
-/// 一個主題底下的單字清單：點單字那一列會念出單字，底下是字母分解。
+/// 一個主題底下的單字清單：點單字那一列會念出單字。
 class TopicWordsPage extends StatelessWidget {
   const TopicWordsPage({super.key, required this.topic});
 
@@ -208,7 +208,6 @@ class TopicWordsPage extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '字母分解中，淡色的 ㅇ 在音節開頭不發音。'
               '漢字詞可以用中文聯想，但意思不一定完全相同。',
               style: theme.textTheme.bodySmall?.copyWith(color: muted),
             ),

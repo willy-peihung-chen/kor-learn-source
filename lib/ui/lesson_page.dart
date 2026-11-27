@@ -31,7 +31,11 @@ class _LessonPageState extends State<LessonPage> {
   int _index = 0;
   bool _finished = false;
 
-  void _next(AppState state) {
+  void _next(AppState state, int index) {
+    // 連按兩下時第二下不算（避免跳過一張或重複完成本課）。
+    if (_finished || index != _index) {
+      return;
+    }
     final cards = widget.lesson.cards;
     state.markLearned(cards[_index].id);
     if (_index == cards.length - 1) {
@@ -63,12 +67,16 @@ class _LessonPageState extends State<LessonPage> {
     final cards = widget.lesson.cards;
     final card = cards[_index];
     final isLast = _index == cards.length - 1;
+    // 在畫面建立時記下卡號，按鈕用這個值，連按時第二下會被擋掉。
+    final shownIndex = _index;
 
     return Column(
       children: <Widget>[
         LinearProgressIndicator(value: (_index + 1) / cards.length),
         Expanded(
           child: PageBody(
+            // 換卡時重新建立捲動區，從頂端開始顯示。
+            key: ValueKey<int>(_index),
             children: <Widget>[
               Text(
                 '${_index + 1} / ${cards.length}',
@@ -95,7 +103,7 @@ class _LessonPageState extends State<LessonPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: FilledButton(
-                      onPressed: () => _next(state),
+                      onPressed: () => _next(state, shownIndex),
                       child: Text(isLast ? '完成本課' : '下一個'),
                     ),
                   ),

@@ -157,11 +157,32 @@ void main() {
   });
 
   group('ReviewState', () {
-    test('isDue：到期時間當下就算到期', () {
+    test('isDue：間隔 1 天以上的卡，到期那天 0 點起就算到期', () {
+      // now 是 10/29 12:00；評「普通」→ 10/30 12:00 到期。
       final s = review(null, ReviewRating.normal);
       expect(s.isDue(now), isFalse);
+      expect(s.isDue(DateTime(2026, 10, 29, 23, 59)), isFalse);
+      expect(s.isDue(DateTime(2026, 10, 30)), isTrue);
+      expect(s.isDue(DateTime(2026, 10, 30, 8)), isTrue);
+      expect(s.availableAt, DateTime(2026, 10, 30));
+    });
+
+    test('isDue：深夜評的卡，過了午夜不會馬上到期（至少隔 8 小時）', () {
+      final late = DateTime(2026, 10, 29, 23, 50);
+      final s = Srs.review(
+          itemId: 'x', rating: ReviewRating.normal, now: late);
+      expect(s.intervalDays, 1);
+      expect(s.isDue(DateTime(2026, 10, 30, 0, 5)), isFalse);
+      expect(s.availableAt, late.add(ReviewState.minGap));
+      expect(s.isDue(DateTime(2026, 10, 30, 8)), isTrue);
+    });
+
+    test('isDue：答錯後的重做（間隔 0 天）仍用精確時間', () {
+      final s = review(null, ReviewRating.unfamiliar);
+      expect(s.intervalDays, 0);
+      expect(s.isDue(now.add(const Duration(minutes: 9))), isFalse);
       expect(s.isDue(s.dueAt), isTrue);
-      expect(s.isDue(s.dueAt.add(const Duration(minutes: 1))), isTrue);
+      expect(s.availableAt, s.dueAt);
     });
 
     test('JSON 往返後內容相同', () {
@@ -288,7 +309,8 @@ void main() {
     test('dueIds 與 newIds 的數量', () {
       final states = <String, ReviewState>{
         'a': state('a', now.subtract(const Duration(hours: 1))),
-        'b': state('b', now.add(const Duration(hours: 1))),
+        // 間隔 1 天以上的卡從到期那天起算，所以「還沒到期」要放在明天以後。
+        'b': state('b', now.add(const Duration(days: 1))),
       };
       expect(
         ReviewQueue.dueIds(itemIds: ids, states: states, now: now),
@@ -580,7 +602,7 @@ void main() {
         ),
         isNull,
       );
-      // 沒被擋住、還沒到期：用原本的到期時間。
+      // 沒被擋住、還沒到期：用到期那天。
       final notYet = <String, ReviewState>{
         'b': st('b', interval: 7, dueAt: later, last: yesterday),
       };
@@ -591,7 +613,8 @@ void main() {
           reverse: <String, ReviewState>{},
           now: now,
         ),
-        later,
+        // 間隔 1 天以上：到期那天的 0 點。
+        DateTime(later.year, later.month, later.day),
       );
     });
   });

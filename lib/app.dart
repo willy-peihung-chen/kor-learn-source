@@ -4,6 +4,7 @@ import 'audio/speech_service.dart';
 import 'state/app_state.dart';
 import 'ui/app_scope.dart';
 import 'ui/app_shell.dart';
+import 'ui/save_status_banner.dart';
 import 'ui/speech_scope.dart';
 import 'ui/theme.dart';
 
@@ -27,6 +28,8 @@ class HangulApp extends StatelessWidget {
           title: '韓文自學',
           debugShowCheckedModeBanner: false,
           theme: buildAppTheme(),
+          builder: (context, child) =>
+              SaveStatusBanner(child: child ?? const SizedBox.shrink()),
           home: const AppShell(),
         ),
       ),

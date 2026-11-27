@@ -35,19 +35,24 @@ class _AppShellState extends State<AppShell> {
 
   void _goTo(int index) => setState(() => _index = index);
 
+  /// 五個分頁都留在畫面樹裡（只顯示目前這一個），切換分頁時保留各頁的狀態，
+  /// 例如辭典的查詢字、測驗頁選的範圍、捲動位置。
   Widget _page() {
-    switch (_index) {
-      case 0:
-        return HomePage(onNavigate: _goTo);
-      case 1:
-        return const LessonsPage();
-      case 2:
-        return const VocabHomePage();
-      case 4:
-        return const DictionaryPage();
-      default:
-        return const QuizHomePage();
-    }
+    final pages = <Widget>[
+      HomePage(onNavigate: _goTo),
+      const LessonsPage(),
+      const VocabHomePage(),
+      const QuizHomePage(),
+      const DictionaryPage(),
+    ];
+    return IndexedStack(
+      index: _index,
+      children: <Widget>[
+        // 隱藏的分頁不能取得焦點（例如用 Tab 鍵跳到辭典的輸入框）。
+        for (var i = 0; i < pages.length; i++)
+          ExcludeFocus(excluding: i != _index, child: pages[i]),
+      ],
+    );
   }
 
   @override

@@ -73,6 +73,10 @@ class AppState extends ChangeNotifier {
   /// 等待目前所有儲存動作完成（測試與關閉前使用）。
   Future<void> flush() => _saveChain;
 
+  /// 最近一次存檔是否失敗；失敗時畫面上方會顯示提醒，下次存檔成功後自動消失。
+  bool get saveFailed => _saveFailed;
+  bool _saveFailed = false;
+
   // ---- 課程 ----
 
   bool isLessonCompleted(String lessonId) =>
@@ -423,10 +427,17 @@ class AppState extends ChangeNotifier {
   void _commit() {
     _data.trim();
     notifyListeners();
-    _saveChain = _saveChain
-        .then((_) => _repository.save(_data))
-        .catchError((Object error) {
+    _saveChain = _saveChain.then((_) => _repository.save(_data)).then((_) {
+      if (_saveFailed) {
+        _saveFailed = false;
+        notifyListeners();
+      }
+    }).catchError((Object error) {
       debugPrint('儲存學習紀錄失敗：$error');
+      if (!_saveFailed) {
+        _saveFailed = true;
+        notifyListeners();
+      }
     });
   }
 }

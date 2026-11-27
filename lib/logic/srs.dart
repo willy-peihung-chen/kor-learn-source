@@ -46,7 +46,27 @@ class ReviewState {
   /// 加這個欄位之前的舊紀錄沒有這項，讀回來是 null（當作以前學的，不算今天）。
   final DateTime? firstReviewedAt;
 
-  bool isDue(DateTime now) => !dueAt.isAfter(now);
+  /// 實際可以複習的時間。
+  ///
+  /// 間隔 1 天以上的卡，從到期那天的 0 點（本機時間）起就算到期，不必等到幾點幾分
+  /// （例如晚上 9 點評的卡，隔天早上就能複習）；但距離上次複習至少 [minGap]，
+  /// 避免深夜 11 點多評的卡過了午夜幾分鐘就又出現。
+  /// 答錯後 10 分鐘的重做（間隔 0 天）仍用精確時間。
+  DateTime get availableAt {
+    if (intervalDays < 1) {
+      return dueAt;
+    }
+    final dayStart = DateTime(dueAt.year, dueAt.month, dueAt.day);
+    final earliest = lastReviewedAt.add(minGap);
+    final at = earliest.isAfter(dayStart) ? earliest : dayStart;
+    // 不會晚於原本的到期時間。
+    return at.isAfter(dueAt) ? dueAt : at;
+  }
+
+  /// 間隔 1 天以上的卡，距離上次複習最少要隔多久才會到期。
+  static const Duration minGap = Duration(hours: 8);
+
+  bool isDue(DateTime now) => !availableAt.isAfter(now);
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'itemId': itemId,
@@ -414,9 +434,10 @@ class TwoWayQueue {
   }) {
     final tomorrow = _startOfTomorrow(now);
     DateTime? earliest;
-    void consider(DateTime dueAt, {required bool blockedToday}) {
-      final at =
-          blockedToday && dueAt.isBefore(tomorrow) ? tomorrow : dueAt;
+    void consider(DateTime availableAt, {required bool blockedToday}) {
+      final at = blockedToday && availableAt.isBefore(tomorrow)
+          ? tomorrow
+          : availableAt;
       if (!at.isAfter(now)) {
         return; // 現在就可以出，不算「之後」。
       }
@@ -429,11 +450,11 @@ class TwoWayQueue {
       final f = forward[wordId];
       final r = reverse[wordId];
       if (f != null) {
-        consider(f.dueAt, blockedToday: _blocks(r, now));
+        consider(f.availableAt, blockedToday: _blocks(r, now));
       }
       if (r != null) {
         consider(
-          r.dueAt,
+          r.availableAt,
           blockedToday: _blocks(f, now) ||
               forwardDue(wordId, forward, reverse, now),
         );

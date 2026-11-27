@@ -17,6 +17,8 @@ class PageBody extends StatelessWidget {
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
         child: ListView(
+          // 分頁同時存在（IndexedStack），不共用 PrimaryScrollController。
+          primary: false,
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
           children: children,
         ),

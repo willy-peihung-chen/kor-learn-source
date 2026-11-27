@@ -64,7 +64,11 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
     }
   }
 
-  void _rate(ReviewRating rating) {
+  void _rate(int position, ReviewRating rating) {
+    // 連按或兩指同時按時，只算第一下（避免評到還沒看過的下一張）。
+    if (_round.isFinished || position != _round.position || !_revealed) {
+      return;
+    }
     final state = AppScope.of(context);
     state.rateCard(_round.idAt(_round.position), rating);
     setState(() {
@@ -129,6 +133,8 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
     final cardId = _round.idAt(index);
     final reverse = CardId.isReverse(cardId);
     final word = Catalog.wordById(CardId.wordIdOf(cardId))!;
+    // 在畫面建立時記下位置，評分按鈕用這個值，連按時第二下會被擋掉。
+    final shownPosition = _round.position;
     final isNew = state.isNewCard(cardId);
     final isRetry = _round.isRetry(index);
     final topic = Catalog.topicOfWord(word.id);
@@ -180,7 +186,7 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
               for (final rating in ReviewRating.values) ...<Widget>[
                 Expanded(
                   child: FilledButton.tonal(
-                    onPressed: () => _rate(rating),
+                    onPressed: () => _rate(shownPosition, rating),
                     child: Text(rating.label),
                   ),
                 ),
@@ -483,7 +489,10 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
               Text(
                 nextDue == null
                     ? '沒有排定的下次複習。'
-                    : '下一張預計在 ${formatDateTime(nextDue)} 之後到期。',
+                    : nextDue.hour == 0 && nextDue.minute == 0
+                        // 間隔 1 天以上的卡從那天 0 點起就能複習，不顯示「00:00」。
+                        ? '下一張 ${formatDate(nextDue)} 起可以複習。'
+                        : '下一張預計在 ${formatDateTime(nextDue)} 之後到期。',
                 style: theme.textTheme.bodyMedium?.copyWith(color: muted),
               ),
               const SizedBox(height: 16),

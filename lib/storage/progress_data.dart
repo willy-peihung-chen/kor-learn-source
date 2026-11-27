@@ -94,7 +94,10 @@ class ProgressData {
     List<ActivityEntry>? activity,
     this.extraNewWordsDate,
     this.extraNewWords = 0,
-  })  : completedLessons = completedLessons ?? <String>{},
+    Map<String, dynamic>? unknownFields,
+    this.loadedVersion = schemaVersion,
+  })  : unknownFields = unknownFields ?? <String, dynamic>{},
+        completedLessons = completedLessons ?? <String>{},
         learnedItems = learnedItems ?? <String>{},
         reviews = reviews ?? <String, ReviewState>{},
         reverseReviews = reverseReviews ?? <String, ReviewState>{},
@@ -119,6 +122,26 @@ class ProgressData {
   String? extraNewWordsDate;
   int extraNewWords;
 
+  /// 讀到、但這個版本不認得的頂層欄位（較新版本的 App 寫入的）。存檔時原樣寫回，
+  /// 避免舊版 App（例如手機上快取住的舊網頁）把新版的資料刪掉。
+  final Map<String, dynamic> unknownFields;
+
+  /// 讀到的資料版本；比 [schemaVersion] 新時，存檔仍寫回較新的版本號。
+  final int loadedVersion;
+
+  /// 這個版本認得的頂層欄位。
+  static const Set<String> knownFields = <String>{
+    'version',
+    'completedLessons',
+    'learnedItems',
+    'reviews',
+    'reverseReviews',
+    'attempts',
+    'activity',
+    'extraNewWordsDate',
+    'extraNewWords',
+  };
+
   /// 只保留最近的紀錄，避免資料無限成長。
   void trim() {
     if (attempts.length > maxAttempts) {
@@ -130,7 +153,8 @@ class ProgressData {
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'version': schemaVersion,
+        ...unknownFields,
+        'version': math.max(schemaVersion, loadedVersion),
         'completedLessons': completedLessons.toList()..sort(),
         'learnedItems': learnedItems.toList()..sort(),
         'reviews': reviews.values.map((r) => r.toJson()).toList(),
@@ -190,6 +214,13 @@ class ProgressData {
       extraNewWords: json['extraNewWords'] is num
           ? math.max(0, (json['extraNewWords'] as num).toInt())
           : 0,
+      unknownFields: <String, dynamic>{
+        for (final entry in json.entries)
+          if (!knownFields.contains(entry.key)) entry.key: entry.value,
+      },
+      loadedVersion: json['version'] is num
+          ? math.max(schemaVersion, (json['version'] as num).toInt())
+          : schemaVersion,
     );
   }
 }

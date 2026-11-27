@@ -241,7 +241,8 @@ void main() {
       state.rateWord(topicA.words.first.id, ReviewRating.unfamiliar);
       state.rateWord(topicB.words.first.id, ReviewRating.normal);
       expect(state.nextDueAt, now.add(Srs.relearnDelay));
-      expect(state.nextDueAtOf(topicB.id), now.add(const Duration(days: 1)));
+      // 間隔 1 天的卡，明天 0 點起就可以複習。
+      expect(state.nextDueAtOf(topicB.id), DateTime(2026, 10, 30));
       expect(state.nextDueAtOf(topicA.id), now.add(Srs.relearnDelay));
       await state.flush();
     });
@@ -575,20 +576,34 @@ void main() {
     test('今天練過中文→韓文，韓文→中文當天到期也留到明天', () async {
       var clock = now;
       final w = Catalog.words.first.id;
+      final rev = CardId.reverse(w);
+      // 韓文→中文今天到期（間隔 1 天以上，今天 0 點起就算到期）；
+      // 中文→韓文今天已經練過。
       final state = AppState(
         repository: MemoryProgressRepository(),
-        data: ProgressData(reviews: <String, ReviewState>{
-          w: fwd(w, dueIn: const Duration(hours: 1)),
-        }),
+        data: ProgressData(
+          reviews: <String, ReviewState>{
+            // 今天晚上 8 點才到期：新的算法下今天就算到期。
+            w: fwd(w, dueIn: const Duration(hours: 8)),
+          },
+          reverseReviews: <String, ReviewState>{
+            w: ReviewState(
+              itemId: w,
+              repetitions: 1,
+              intervalDays: 3,
+              ease: 2.3,
+              lapses: 0,
+              dueAt: now.add(const Duration(days: 3)),
+              lastReviewedAt: now.subtract(const Duration(hours: 1)),
+              firstReviewedAt: now.subtract(const Duration(hours: 1)),
+            ),
+          },
+        ),
         clock: () => clock,
       );
-      final rev = CardId.reverse(w);
-      expect(state.buildReviewQueue(), contains(rev));
-      state.rateCard(rev, ReviewRating.familiar);
-
-      clock = now.add(const Duration(hours: 2)); // 韓文→中文已經到期
       expect(state.dueCount, 0);
       expect(state.buildReviewQueue(), isNot(contains(w)));
+      expect(state.buildReviewQueue(), isNot(contains(rev)));
       expect(state.nextDueAt, DateTime(2026, 10, 30));
 
       clock = DateTime(2026, 10, 30, 8);

@@ -41,7 +41,10 @@ class SharedPrefsProgressRepository implements ProgressRepository {
 
   @override
   Future<void> save(ProgressData data) async {
-    await _prefs.setString(storageKey, jsonEncode(data.toJson()));
+    final ok = await _prefs.setString(storageKey, jsonEncode(data.toJson()));
+    if (!ok) {
+      throw StateError('瀏覽器拒絕寫入學習紀錄（可能是儲存空間不足）');
+    }
   }
 }
 

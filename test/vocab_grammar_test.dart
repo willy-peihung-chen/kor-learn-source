@@ -16,6 +16,15 @@ void main() {
       expect(wordIds.toSet().length, wordIds.length);
     });
 
+    test('中翻韓卡翻面前看得到的中文（意思、例句翻譯）不含這個字的韓文', () {
+      // 中翻韓卡翻面前會顯示 meaning 與 exampleMeaning，不能直接寫出答案。
+      for (final word in Catalog.words) {
+        final answer = word.hangul.replaceAll(' ', '');
+        final front = '${word.meaning} ${word.exampleMeaning}'.replaceAll(' ', '');
+        expect(front.contains(answer), isFalse, reason: word.id);
+      }
+    });
+
     test('每個單字只屬於一個主題，且主題不是空的', () {
       var total = 0;
       for (final topic in Catalog.topics) {
