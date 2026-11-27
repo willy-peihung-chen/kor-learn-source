@@ -8,6 +8,7 @@ import '../state/app_state.dart';
 import '../util/format.dart';
 import 'app_scope.dart';
 import 'haeyo_form_line.dart';
+import 'hanja_suffix_line.dart';
 import 'speak_button.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -257,6 +258,7 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
         const SizedBox(height: 16),
         Text(word.meaning, style: theme.textTheme.headlineSmall),
         ..._hanja(context, word),
+        ..._suffix(word),
         ..._haeyo(word),
         if (isHard && note.isNotEmpty) ...<Widget>[
           const SizedBox(height: 20),
@@ -326,6 +328,7 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
           ],
         ),
         ..._hanja(context, word),
+        ..._suffix(word),
         ..._haeyo(word),
         if (isHard && note.isNotEmpty) ...<Widget>[
           const SizedBox(height: 20),
@@ -375,6 +378,13 @@ class _ReviewSessionPageState extends State<ReviewSessionPage> {
       const SizedBox(height: 2),
       HaeyoFormLine(word: word, center: true),
     ];
+  }
+
+  List<Widget> _suffix(WordItem word) {
+    if (word.hanja == null) {
+      return const <Widget>[];
+    }
+    return <Widget>[HanjaSuffixLine(word: word, center: true)];
   }
 
   List<Widget> _hanja(BuildContext context, WordItem word) {
